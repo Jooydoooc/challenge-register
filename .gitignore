@@ -1,0 +1,16 @@
+# Wrangler local cache and state (contains your Cloudflare account id)
+.wrangler/
+worker/.wrangler/
+
+# Test artefacts
+.playwright-mcp/
+desktop-full.png
+*.png
+
+# OS
+.DS_Store
+
+# Never commit secrets. BOT_TOKEN and CHAT_ID live in Cloudflare:
+#   wrangler secret put BOT_TOKEN
+.dev.vars
+.env
