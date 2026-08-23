@@ -626,6 +626,29 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .choice:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
 .choice-meta { display: block; font-weight: 400; color: var(--muted); font-size: 0.8438rem; margin-top: 0.15rem; }
 
+/* Difficulty checklists: denser than .choice, since there are eight of each
+   and they are optional. */
+.checks {
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 2.75rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.9375rem;
+  transition: background-color 0.15s var(--ease);
+}
+.check:hover { background: var(--surface); }
+.check input { flex: none; margin: 0; width: 1.1rem; height: 1.1rem; accent-color: var(--primary); }
+.check:has(input:checked) { background: var(--primary-soft); font-weight: 550; }
+.check:has(input:focus-visible) { outline: 3px solid var(--primary); outline-offset: 2px; }
+
 .consent {
   display: flex;
   gap: 0.75rem;
@@ -911,26 +934,45 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 
             <div class="field span-2">
               <fieldset>
-                <legend class="legend" id="group-legend">Preferred group <span class="req" aria-hidden="true">*</span></legend>
-                <div class="choices" id="groupChoices" role="radiogroup"
-                     aria-labelledby="group-legend" aria-describedby="group-error"><!-- rendered from CONFIG --></div>
-                <span class="error" aria-live="polite" id="group-error" style="margin-top:0.5rem"></span>
+                <legend class="legend" id="course-legend">Which course? <span class="req" aria-hidden="true">*</span></legend>
+                <div class="choices" id="courseChoices" role="radiogroup"
+                     aria-labelledby="course-legend" aria-describedby="course-error"><!-- rendered from CONFIG --></div>
+                <span class="error" aria-live="polite" id="course-error" style="margin-top:0.5rem"></span>
               </fieldset>
             </div>
 
             <div class="field">
-              <label for="level">Current English level <span class="req" aria-hidden="true">*</span></label>
-              <select id="level" name="level" required aria-describedby="level-error">
+              <label for="level">Your level <span class="req" aria-hidden="true">*</span></label>
+              <select id="level" name="level" required aria-describedby="level-hint level-error">
                 <option value="">Choose one</option>
-                <option>Beginner</option>
-                <option>Elementary</option>
-                <option>Pre-Intermediate</option>
-                <option>Intermediate</option>
-                <option>Upper-Intermediate</option>
-                <option>Advanced</option>
-                <option>Not sure</option>
               </select>
+              <span class="hint" id="level-hint">Not sure? Pick the closest and we will check with you.</span>
               <span class="error" aria-live="polite" id="level-error"></span>
+            </div>
+
+            <div class="field">
+              <label for="startDate">When do you want to start? <span class="req" aria-hidden="true">*</span></label>
+              <input id="startDate" name="startDate" type="date" required
+                     aria-describedby="startDate-hint startDate-error">
+              <span class="hint" id="startDate-hint">Pick a date, or type it as dd/mm/yyyy.</span>
+              <span class="error" aria-live="polite" id="startDate-error"></span>
+            </div>
+
+            <div class="field span-2">
+              <fieldset>
+                <legend class="legend" id="format-legend">Offline or online? <span class="req" aria-hidden="true">*</span></legend>
+                <div class="choices" id="formatChoices" role="radiogroup"
+                     aria-labelledby="format-legend" aria-describedby="format-error"><!-- rendered from CONFIG --></div>
+                <span class="error" aria-live="polite" id="format-error" style="margin-top:0.5rem"></span>
+              </fieldset>
+            </div>
+
+            <div class="field">
+              <label for="timeline">How many days do you have to reach your goal?</label>
+              <input id="timeline" name="timeline" type="number" inputmode="numeric" min="1" max="1095"
+                     aria-describedby="timeline-hint timeline-error" placeholder="90">
+              <span class="hint" id="timeline-hint">Leave empty if you have no deadline.</span>
+              <span class="error" aria-live="polite" id="timeline-error"></span>
             </div>
 
             <div class="field">
@@ -946,22 +988,21 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
               </select>
             </div>
 
-            <div class="field">
-              <label for="currentBand">Current IELTS band <span class="req" aria-hidden="true">*</span></label>
-              <select id="currentBand" name="currentBand" required aria-describedby="currentBand-hint currentBand-error">
-                <option value="">Choose one</option>
-                <option>Never taken the test</option>
-              </select>
-              <span class="hint" id="currentBand-hint">A recent mock score is fine.</span>
-              <span class="error" aria-live="polite" id="currentBand-error"></span>
+            <div class="field span-2">
+              <fieldset>
+                <legend class="legend" id="reading-legend">What do you find hard in Reading?</legend>
+                <p class="hint" style="margin:-0.25rem 0 0.75rem">Tick everything that applies. This is how we place you.</p>
+                <div class="checks" id="readingChecks" role="group"
+                     aria-labelledby="reading-legend"><!-- rendered from CONFIG --></div>
+              </fieldset>
             </div>
 
-            <div class="field">
-              <label for="targetBand">Target band <span class="req" aria-hidden="true">*</span></label>
-              <select id="targetBand" name="targetBand" required aria-describedby="targetBand-error">
-                <option value="">Choose one</option>
-              </select>
-              <span class="error" aria-live="polite" id="targetBand-error"></span>
+            <div class="field span-2">
+              <fieldset>
+                <legend class="legend" id="listening-legend">What do you find hard in Listening?</legend>
+                <div class="checks" id="listeningChecks" role="group"
+                     aria-labelledby="listening-legend"><!-- rendered from CONFIG --></div>
+              </fieldset>
             </div>
 
             <div class="field span-2">
@@ -1047,8 +1088,42 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       ]
     },
 
-    // Groups shown in the schedule table AND as the radio choices in the form.
-    // Set full: true to close a group (its radio becomes disabled).
+    // ---- Registration form options ----
+    // These drive the form directly. The Worker validates against the same
+    // lists, so if you change one you must change worker.js to match.
+    courses: [
+      { name: 'Marathon',        blurb: 'Intensive, fast-paced' },
+      { name: 'Offline classes', blurb: 'In person, regular schedule' },
+      { name: 'Challenge',       blurb: 'Structured programme' }
+    ],
+    levels: ['Beginner', 'Elementary', 'Pre-IELTS', 'IELTS Introduction', 'IELTS Graduation'],
+    formats: [
+      { name: 'Offline', blurb: 'In person' },
+      { name: 'Online',  blurb: 'Live on Zoom' }
+    ],
+    readingDifficulties: [
+      'Matching Headings',
+      'True/False/Not Given',
+      'Yes/No/Not Given',
+      'Multiple Choice',
+      'Sentence or Summary Completion',
+      'Time Management',
+      'Vocabulary',
+      'Understanding the passage'
+    ],
+    listeningDifficulties: [
+      'Multiple Choice',
+      'Map Labelling',
+      'Matching',
+      'Form or Note Completion',
+      'Spelling',
+      'Following the recording',
+      'Different accents',
+      'Losing concentration'
+    ],
+
+    // Shown in the schedule table on the page. Informational only now that
+    // students pick their own start date.
     schedule: [                             // TODO
       { group: 'Morning A',  days: 'Mon / Wed / Fri', time: '08:00 – 09:30', places: '4 left' },
       { group: 'Evening B',  days: 'Mon / Wed / Fri', time: '19:00 – 20:30', places: '2 left' },
@@ -1215,59 +1290,78 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     });
   }
 
-  function renderGroupChoices() {
-    var box = $('#groupChoices');
+  /** Radio group rendered from a list of {name, blurb}. */
+  function renderRadios(boxId, field, items) {
+    var box = $('#' + boxId);
     if (!box) return;
     box.textContent = '';
-    (CONFIG.schedule || []).forEach(function (row, i) {
-      var id = 'group-' + i;
+    (items || []).forEach(function (item, i) {
+      var id = field + '-' + i;
       var label = el('label', 'choice');
       label.setAttribute('for', id);
 
       var input = document.createElement('input');
       input.type = 'radio';
-      input.name = 'group';
+      input.name = field;
       input.id = id;
-      input.value = row.group + ' (' + row.days + ', ' + row.time + ')';
-      input.setAttribute('aria-describedby', 'group-error');
-      if (row.full) input.disabled = true;
+      input.value = item.name;
+      input.setAttribute('aria-describedby', field + '-error');
 
       var text = el('span');
-      text.appendChild(document.createTextNode(row.group + (row.full ? ' (full)' : '')));
-      text.appendChild(el('span', 'choice-meta', row.days + ' · ' + row.time));
+      text.appendChild(document.createTextNode(item.name));
+      if (item.blurb) text.appendChild(el('span', 'choice-meta', item.blurb));
 
       label.appendChild(input);
       label.appendChild(text);
       box.appendChild(label);
     });
-
-    // Every group closed, or none configured. Say so, and let people register
-    // anyway for the waiting list rather than trapping them on a field they
-    // cannot satisfy.
-    if (!groupsAreOpen()) {
-      var note = el('p', 'hint');
-      note.style.margin = '0';
-      note.textContent = (CONFIG.schedule || []).length
-        ? 'Every group is currently full. Register anyway and we will put you on the waiting list for the next intake.'
-        : 'Group times are being finalised. Register and we will send them to you.';
-      box.appendChild(note);
-    }
   }
 
-  function groupsAreOpen() {
-    return Boolean(document.querySelector('input[name="group"]:not(:disabled)'));
+  /** Checkbox group rendered from a list of plain strings. */
+  function renderChecks(boxId, field, items) {
+    var box = $('#' + boxId);
+    if (!box) return;
+    box.textContent = '';
+    (items || []).forEach(function (item, i) {
+      var id = field + '-' + i;
+      var label = el('label', 'check');
+      label.setAttribute('for', id);
+
+      var input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = field;
+      input.id = id;
+      input.value = item;
+
+      label.appendChild(input);
+      label.appendChild(el('span', null, item));
+      box.appendChild(label);
+    });
   }
 
-  function renderBands() {
-    var current = $('#currentBand');
-    var target = $('#targetBand');
-    var b;
-    for (b = 4.0; b <= 8.5; b += 0.5) {
-      current.appendChild(new Option(b.toFixed(1), b.toFixed(1)));
-    }
-    for (b = 5.0; b <= 9.0; b += 0.5) {
-      target.appendChild(new Option(b.toFixed(1), b.toFixed(1)));
-    }
+  function renderLevels() {
+    var select = $('#level');
+    if (!select) return;
+    (CONFIG.levels || []).forEach(function (level) {
+      select.appendChild(new Option(level, level));
+    });
+  }
+
+  /** Today, in the yyyy-mm-dd form a date input needs. */
+  function isoToday() {
+    var now = new Date();
+    var local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+  }
+
+  function setDateBounds() {
+    var input = $('#startDate');
+    if (!input) return;
+    input.min = isoToday(); // nobody starts in the past
+    var year = new Date();
+    year.setFullYear(year.getFullYear() + 1);
+    input.max = new Date(year.getTime() - year.getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 10);
   }
 
   function renderContacts() {
@@ -1312,8 +1406,12 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     renderSchedule();
     renderInstructor();
     renderFaq();
-    renderGroupChoices();
-    renderBands();
+    renderRadios('courseChoices', 'course', CONFIG.courses);
+    renderRadios('formatChoices', 'format', CONFIG.formats);
+    renderChecks('readingChecks', 'reading', CONFIG.readingDifficulties);
+    renderChecks('listeningChecks', 'listening', CONFIG.listeningDifficulties);
+    renderLevels();
+    setDateBounds();
     renderContacts();
   } catch (e) {
     if (window.console) console.error('CONFIG could not be rendered:', e);
@@ -1400,26 +1498,54 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Please check this email address.';
       return '';
     },
-    group: function (v) { return v ? '' : 'Please choose a group.'; },
+    course: function (v) { return v ? '' : 'Please choose a course.'; },
     level: function (v) { return v ? '' : 'Please choose your level.'; },
-    currentBand: function (v) { return v ? '' : 'Please choose an option.'; },
-    targetBand: function (v) { return v ? '' : 'Please choose a target band.'; },
+    format: function (v) { return v ? '' : 'Please choose offline or online.'; },
+    startDate: function (v) {
+      if (!v) return 'Please choose a start date.';
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return 'Please enter the date as dd/mm/yyyy.';
+      var picked = new Date(v + 'T00:00:00');
+      if (isNaN(picked.getTime())) return 'That date is not valid.';
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (picked < today) return 'Please choose today or a later date.';
+      return '';
+    },
+    timeline: function (v) {
+      if (!v) return '';
+      if (!/^\d{1,4}$/.test(v)) return 'Please enter a number of days.';
+      var n = Number(v);
+      if (n < 1 || n > 1095) return 'Please enter between 1 and 1095 days.';
+      return '';
+    },
     notes: function (v) { return v.length > 500 ? 'Please keep this under 500 characters.' : ''; },
     consent: function (v) { return v ? '' : 'Please tick this to continue.'; }
   };
 
+  /** Fields rendered as radio groups rather than single inputs. */
+  var RADIO_FIELDS = ['course', 'format'];
+  /** Fields rendered as checkbox groups; these produce arrays. */
+  var CHECK_FIELDS = ['reading', 'listening'];
+
+  function isRadio(field) { return RADIO_FIELDS.indexOf(field) !== -1; }
+
   function valueOf(field) {
-    if (field === 'group') {
-      var checked = form.querySelector('input[name="group"]:checked');
+    if (isRadio(field)) {
+      var checked = form.querySelector('input[name="' + field + '"]:checked');
       return checked ? checked.value : '';
     }
     if (field === 'consent') return $('#consent').checked;
-    var node = form.elements[field];
+    var node = $('#' + field);
     return node ? String(node.value).trim() : '';
   }
 
+  /** Every ticked box in a checkbox group, as an array of labels. */
+  function checkedValues(field) {
+    return $$('input[name="' + field + '"]:checked', form).map(function (i) { return i.value; });
+  }
+
   function controlFor(field) {
-    if (field === 'group') return form.querySelector('input[name="group"]:not(:disabled)');
+    if (isRadio(field)) return form.querySelector('input[name="' + field + '"]');
     return $('#' + field);
   }
 
@@ -1429,7 +1555,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 
     // The radiogroup carries the invalid state; individual radios point at the
     // same error text via aria-describedby.
-    var control = field === 'group' ? $('#groupChoices') : $('#' + field);
+    var control = isRadio(field) ? $('#' + field + 'Choices') : $('#' + field);
     if (!control) return;
     if (message) control.setAttribute('aria-invalid', 'true');
     else control.removeAttribute('aria-invalid');
@@ -1441,10 +1567,17 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     return !message;
   }
 
+  // Checkbox groups have no validation rule, but still need to save.
+  CHECK_FIELDS.forEach(function (field) {
+    $$('input[name="' + field + '"]', form).forEach(function (input) {
+      input.addEventListener('change', saveDraft);
+    });
+  });
+
   Object.keys(RULES).forEach(function (field) {
-    if (field === 'group') {
-      $$('input[name="group"]', form).forEach(function (input) {
-        input.addEventListener('change', function () { validateField('group'); saveDraft(); });
+    if (isRadio(field)) {
+      $$('input[name="' + field + '"]', form).forEach(function (input) {
+        input.addEventListener('change', function () { validateField(field); saveDraft(); });
       });
       return;
     }
@@ -1497,7 +1630,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   notes.addEventListener('input', updateCounter);
 
   /* ---------- Draft ---------- */
-  var DRAFT_FIELDS = ['name', 'phone', 'telegram', 'email', 'level', 'currentBand', 'targetBand', 'source', 'notes'];
+  var DRAFT_FIELDS = ['name', 'phone', 'telegram', 'email', 'level', 'startDate', 'timeline', 'source', 'notes'];
   var saveTimer;
 
   function saveDraft() {
@@ -1509,8 +1642,14 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
           var node = $('#' + field);
           if (node && node.value) draft[field] = node.value;
         });
-        var group = form.querySelector('input[name="group"]:checked');
-        if (group) draft.group = group.value;
+        RADIO_FIELDS.forEach(function (field) {
+          var checked = form.querySelector('input[name="' + field + '"]:checked');
+          if (checked) draft[field] = checked.value;
+        });
+        CHECK_FIELDS.forEach(function (field) {
+          var values = checkedValues(field);
+          if (values.length) draft[field] = values;
+        });
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
       } catch (e) { /* private mode or full quota: not worth interrupting anyone */ }
     }, 350);
@@ -1530,13 +1669,28 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
         var match = Array.prototype.some.call(node.options, function (opt) { return opt.value === draft[field]; });
         if (!match) return;
       }
+      // A saved start date may have gone stale while the tab was closed.
+      if (field === 'startDate' && RULES.startDate(draft[field])) return;
       node.value = draft[field];
     });
 
-    if (draft.group && window.CSS && CSS.escape) {
-      var radio = form.querySelector('input[name="group"][value="' + CSS.escape(draft.group) + '"]');
-      if (radio && !radio.disabled) radio.checked = true;
-    }
+    if (!(window.CSS && CSS.escape)) { updateCounter(); return; }
+
+    RADIO_FIELDS.forEach(function (field) {
+      if (typeof draft[field] !== 'string') return;
+      var radio = form.querySelector('input[name="' + field + '"][value="' + CSS.escape(draft[field]) + '"]');
+      if (radio) radio.checked = true;
+    });
+
+    CHECK_FIELDS.forEach(function (field) {
+      if (!Array.isArray(draft[field])) return;
+      draft[field].forEach(function (value) {
+        if (typeof value !== 'string') return;
+        var box = form.querySelector('input[name="' + field + '"][value="' + CSS.escape(value) + '"]');
+        if (box) box.checked = true;
+      });
+    });
+
     // Consent is deliberately not restored: agreement has to be given each time.
     updateCounter();
   }
@@ -1607,11 +1761,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 
     hideBanner();
 
-    // Do not demand a group when there is no selectable group to demand.
-    var checks = Object.keys(RULES).filter(function (field) {
-      return field !== 'group' || groupsAreOpen();
-    });
-    var invalid = checks.filter(function (field) { return !validateField(field); });
+    var invalid = Object.keys(RULES).filter(function (field) { return !validateField(field); });
     if (invalid.length) {
       var first = controlFor(invalid[0]);
       if (first) {
@@ -1644,12 +1794,13 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       phone: valueOf('phone'),
       telegram: valueOf('telegram'),
       email: valueOf('email'),
-      // Empty only when every group is full, which the validator allows on
-      // purpose. The server requires a value, so name that state explicitly.
-      group: valueOf('group') || 'Waiting list',
+      course: valueOf('course'),
       level: valueOf('level'),
-      currentBand: valueOf('currentBand'),
-      targetBand: valueOf('targetBand'),
+      format: valueOf('format'),
+      startDate: valueOf('startDate'),
+      timeline: valueOf('timeline'),
+      reading: checkedValues('reading'),
+      listening: checkedValues('listening'),
       source: valueOf('source'),
       notes: valueOf('notes'),
       consent: true,
