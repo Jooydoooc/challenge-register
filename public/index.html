@@ -11,45 +11,47 @@
 <style>
 /* ============================================================
    Tokens
-   Palette: deep olive + chartreuse highlighter on pure white.
+   Palette: neutral greys on white, one blue accent.
+   Chroma is 0 on every neutral: no hidden warmth or coolness.
    ============================================================ */
 :root {
   --bg:            oklch(1 0 0);
-  --surface:       oklch(0.976 0.006 110);
-  --surface-2:     oklch(0.951 0.010 110);
-  --line:          oklch(0.905 0.009 110);
-  --line-strong:   oklch(0.820 0.012 110);
-  --ink:           oklch(0.200 0.012 110);
-  --muted:         oklch(0.478 0.014 110);
+  --surface:       oklch(0.978 0 0);
+  --surface-2:     oklch(0.950 0 0);
+  --line:          oklch(0.906 0 0);
+  --line-strong:   oklch(0.820 0 0);
+  --ink:           oklch(0.190 0 0);
+  --muted:         oklch(0.472 0 0);
 
-  --primary:       oklch(0.380 0.075 112);
-  --primary-hover: oklch(0.320 0.070 112);
-  --primary-deep:  oklch(0.238 0.048 112);
-  --primary-ink:   oklch(0.985 0.006 110);
-  --primary-soft:  oklch(0.955 0.020 110);
+  --primary:       oklch(0.520 0.170 255);  /* blue: links, focus rings */
+  --primary-fill:  oklch(0.520 0.170 255);  /* filled buttons; must carry white text */
+  --primary-hover: oklch(0.450 0.170 255);
+  --primary-deep:  oklch(0.300 0.090 255);
+  --primary-ink:   oklch(1 0 0);            /* text on a filled blue */
+  --primary-soft:  oklch(0.962 0.024 255);  /* selected row tint */
 
-  --accent:        oklch(0.880 0.155 108);
-  --accent-ink:    oklch(0.235 0.060 108);
+  --accent:        var(--primary);
+  --accent-ink:    var(--primary-ink);
 
-  --field-border:  oklch(0.660 0.016 110); /* 3:1 vs --bg, per WCAG 1.4.11 */
+  --field-border:  oklch(0.655 0 0);        /* 3:1 vs --bg, per WCAG 1.4.11 */
   --danger:        oklch(0.505 0.170 27);
   --danger-soft:   oklch(0.965 0.022 27);
   --ok:            oklch(0.470 0.105 155);
 
   --field-bg:      oklch(1 0 0);
 
-  /* Type */
-  --display: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  /* Type: one family, hierarchy from weight and scale. */
+  --display: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
   /* Space */
   --gutter: clamp(1.25rem, 5vw, 3.5rem);
   --measure: 68ch;
-  --radius: 4px;
-  --radius-lg: 10px;
+  --radius: 8px;
+  --radius-lg: 14px;
 
-  --shadow: 0 1px 2px oklch(0.2 0.012 110 / 0.05), 0 8px 24px -12px oklch(0.2 0.012 110 / 0.14);
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.05), 0 8px 24px -12px oklch(0 0 0 / 0.14);
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1); /* out-quint */
 
@@ -60,29 +62,28 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg:            oklch(0.163 0.008 110);
-    --surface:       oklch(0.212 0.010 110);
-    --surface-2:     oklch(0.252 0.012 110);
-    --line:          oklch(0.305 0.013 110);
-    --line-strong:   oklch(0.400 0.016 110);
-    --ink:           oklch(0.958 0.005 110);
-    --muted:         oklch(0.722 0.013 110);
+    --bg:            oklch(0.170 0 0);
+    --surface:       oklch(0.222 0 0);
+    --surface-2:     oklch(0.262 0 0);
+    --line:          oklch(0.312 0 0);
+    --line-strong:   oklch(0.410 0 0);
+    --ink:           oklch(0.962 0 0);
+    --muted:         oklch(0.725 0 0);
 
-    --primary:       oklch(0.815 0.110 110);
-    --primary-hover: oklch(0.870 0.120 110);
-    --primary-deep:  oklch(0.283 0.038 112);
-    --primary-ink:   oklch(0.190 0.035 112);
-    --primary-soft:  oklch(0.262 0.026 110);
+    --primary:       oklch(0.620 0.170 255);
+    /* Darker than --primary so white text on it still clears 4.5:1. */
+    --primary-fill:  oklch(0.510 0.175 255);
+    --primary-hover: oklch(0.570 0.175 255);
+    --primary-deep:  oklch(0.255 0.055 255);
+    --primary-ink:   oklch(1 0 0);
+    --primary-soft:  oklch(0.275 0.045 255);
 
-    --accent:        oklch(0.865 0.160 108);
-    --accent-ink:    oklch(0.200 0.055 108);
-
-    --field-border:  oklch(0.520 0.016 110);
+    --field-border:  oklch(0.515 0 0);
     --danger:        oklch(0.735 0.145 27);
     --danger-soft:   oklch(0.262 0.045 27);
     --ok:            oklch(0.780 0.125 155);
 
-    --field-bg:      oklch(0.190 0.009 110);
+    --field-bg:      oklch(0.198 0 0);
 
     --shadow: 0 1px 2px oklch(0 0 0 / 0.4), 0 10px 30px -14px oklch(0 0 0 / 0.6);
   }
@@ -93,21 +94,21 @@
    values are the resolved sRGB of the tokens above, so light mode is identical. */
 @supports not (color: oklch(0 0 0)) {
   :root {
-    --bg:#fff; --surface:#f7f8f2; --surface-2:#f0f1e9; --line:#e1e2d9;
-    --line-strong:#c6c7bc; --field-border:#94968a; --ink:#181910; --muted:#5e6055;
-    --primary:#3f4212; --primary-hover:#33350c; --primary-deep:#22240a;
-    --primary-ink:#fbfbf7; --primary-soft:#f4f6e5; --accent:#e4e15c;
-    --accent-ink:#22210a; --danger:#b32d26; --danger-soft:#fdeeec; --ok:#2e6b46;
+    --bg:#fff; --surface:#f8f8f8; --surface-2:#eee; --line:#e2e2e2;
+    --line-strong:#c9c9c9; --field-border:#949494; --ink:#161616; --muted:#5c5c5c;
+    --primary:#1465c7; --primary-fill:#1465c7; --primary-hover:#0f52a5; --primary-deep:#12345c;
+    --primary-ink:#fff; --primary-soft:#eef4fd; --accent:#1465c7;
+    --accent-ink:#fff; --danger:#b32d26; --danger-soft:#fdeeec; --ok:#2e6b46;
     --field-bg:#fff;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg:#191a13; --surface:#24261d; --surface-2:#2d2f25; --line:#3a3c31;
-      --line-strong:#50533f; --field-border:#6a6d5a; --ink:#f2f3ec; --muted:#adb0a2;
-      --primary:#cdd07a; --primary-hover:#dcdf88; --primary-deep:#32351f;
-      --primary-ink:#22240e; --primary-soft:#31341f; --accent:#e2df6a;
-      --accent-ink:#1d1c06; --danger:#e08b83; --danger-soft:#3a2724; --ok:#8fc7a3;
-      --field-bg:#1e1f17;
+      --bg:#1a1a1a; --surface:#262626; --surface-2:#303030; --line:#3b3b3b;
+      --line-strong:#525252; --field-border:#6b6b6b; --ink:#f3f3f3; --muted:#b0b0b0;
+      --primary:#4a90e8; --primary-fill:#1f6ed0; --primary-hover:#2b7ee0; --primary-deep:#17273c;
+      --primary-ink:#fff; --primary-soft:#1d2c40; --accent:#4a90e8;
+      --accent-ink:#fff; --danger:#e08b83; --danger-soft:#3a2724; --ok:#8fc7a3;
+      --field-bg:#1f1f1f;
     }
   }
 }
@@ -162,8 +163,6 @@ img[hidden] { display: none; }
   outline-offset: 2px;
   border-radius: 2px;
 }
-.hero :focus-visible,
-.register :focus-visible { outline-color: var(--accent); }
 
 @media (forced-colors: active) {
   :focus-visible { outline: 3px solid Highlight; }
@@ -193,24 +192,8 @@ img[hidden] { display: none; }
 }
 .skip:focus { top: 0.5rem; }
 
-/* The recurring mark: a highlighter swipe behind a phrase. */
-.mark {
-  position: relative;
-  display: inline;
-  color: inherit;
-  isolation: isolate;
-}
-.mark::before {
-  content: "";
-  position: absolute;
-  inset: 0.08em -0.12em 0.06em -0.12em;
-  background: var(--accent);
-  z-index: -1;
-  transform: scaleX(1);
-  transform-origin: 0 50%;
-  border-radius: 2px;
-}
-.hero .mark { color: var(--accent-ink); }
+/* Emphasis in the heading: the blue carries it, no decoration. */
+.mark { color: var(--primary); }
 
 /* ============================================================
    Header
@@ -253,10 +236,10 @@ img[hidden] { display: none; }
 }
 .wordmark::before {
   content: "";
-  width: 1.4rem;
-  height: 0.62rem;
-  background: var(--accent);
-  border-radius: 2px;
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--primary);
+  border-radius: 50%;
   flex: none;
 }
 
@@ -290,7 +273,7 @@ img[hidden] { display: none; }
    Buttons
    ============================================================ */
 .btn {
-  --btn-bg: var(--primary);
+  --btn-bg: var(--primary-fill);
   --btn-fg: var(--primary-ink);
   display: inline-flex;
   align-items: center;
@@ -315,7 +298,7 @@ img[hidden] { display: none; }
 /* aria-disabled rather than disabled: a disabled button drops keyboard focus
    mid-submit, so the "Sending" state is never announced. */
 .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.65; cursor: progress; }
-.btn[aria-disabled="true"]:hover { --btn-bg: var(--primary); }
+.btn[aria-disabled="true"]:hover { --btn-bg: var(--primary-fill); }
 .btn[aria-disabled="true"]:active { transform: none; }
 
 .btn--lg { min-height: 3.375rem; padding: 0.9rem 2rem; font-size: 1.0625rem; }
@@ -332,82 +315,64 @@ img[hidden] { display: none; }
 .btn--ghost:hover:not(:disabled) { --btn-bg: var(--surface-2); }
 
 /* ============================================================
-   Hero — the one drenched surface
+   Hero — plain white, hierarchy from type alone
    ============================================================ */
 .hero {
-  background: var(--primary-deep);
-  color: oklch(0.965 0.008 110);
-  padding-block: clamp(3.5rem, 8vw, 7rem) clamp(3.5rem, 7vw, 6rem);
-  position: relative;
-  overflow: hidden;
+  padding-block: clamp(3rem, 7vw, 5.5rem) clamp(2.5rem, 5vw, 4rem);
+  border-bottom: 1px solid var(--line);
 }
-/* Ruled-paper texture, very faint. Decorative only. */
-.hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0 2.25rem,
-    oklch(1 0 0 / 0.045) 2.25rem calc(2.25rem + 1px)
-  );
-  pointer-events: none;
-}
-.hero > * { position: relative; z-index: 1; }
 
 .hero-grid {
   display: grid;
   gap: clamp(2.5rem, 5vw, 4rem);
-  align-items: end;
+  align-items: start;
 }
 @media (min-width: 62rem) {
-  .hero-grid { grid-template-columns: minmax(0, 1.35fr) minmax(17rem, 0.65fr); }
+  .hero-grid { grid-template-columns: minmax(0, 1.3fr) minmax(16rem, 0.7fr); }
 }
 
-.hero h1 { color: oklch(0.99 0.004 110); max-width: 16ch; }
+.hero h1 { max-width: 16ch; }
 
 .hero-lede {
   font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.3125rem);
   line-height: 1.55;
-  color: oklch(0.855 0.020 110);
+  color: var(--muted);
   max-width: 46ch;
-  margin-top: 1.6rem;
+  margin-top: 1.4rem;
 }
 
 .hero-cta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-top: 2.25rem;
+  margin-top: 2rem;
 }
 
-/* Facts panel: a plain definition list, not a metric card. */
+/* Facts: a plain definition list on a light panel. */
 .facts {
   margin: 0;
-  border-top: 1px solid oklch(1 0 0 / 0.22);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 0.5rem 1.25rem;
 }
 .facts div {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 1.5rem;
-  padding: 0.85rem 0;
-  border-bottom: 1px solid oklch(1 0 0 / 0.13);
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--line);
 }
-.facts dt {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: oklch(0.80 0.030 110);
-}
+.facts div:last-child { border-bottom: 0; }
+.facts dt { font-size: 0.9375rem; color: var(--muted); }
 .facts dd {
   margin: 0;
   font-weight: 600;
   text-align: right;
-  font-size: 1.0625rem;
+  font-size: 0.9375rem;
 }
-.facts .seats { color: var(--accent); }
+.facts .seats { color: var(--primary); }
 
 /* ============================================================
    Sections
@@ -529,10 +494,7 @@ td .full { color: var(--muted); }
 /* ============================================================
    Registration form
    ============================================================ */
-.register { background: var(--primary-deep); color: oklch(0.965 0.008 110); }
-.register h2 { color: oklch(0.99 0.004 110); }
-.register .section-head p { color: oklch(0.845 0.020 110); }
-.register :focus-visible { outline-color: var(--accent); }
+.register { background: var(--surface); }
 
 .form-shell {
   background: var(--bg);
@@ -542,6 +504,65 @@ td .full { color: var(--muted); }
   padding: clamp(1.5rem, 4vw, 3rem);
   box-shadow: var(--shadow);
   max-width: 58rem;
+}
+
+/* ---- Stepper ---- */
+.stepper {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  list-style: none;
+  padding: 0;
+}
+.stepper li {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  min-width: 0;
+}
+.stepper li::before {
+  content: "";
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  transition: background-color 0.3s var(--ease);
+}
+.stepper li[data-state="current"] { color: var(--ink); font-weight: 650; }
+.stepper li[data-state="current"]::before,
+.stepper li[data-state="done"]::before { background: var(--primary); }
+.stepper .num { font-variant-numeric: tabular-nums; }
+.stepper .label { display: none; }
+@media (min-width: 34rem) {
+  .stepper .label { display: inline; }
+  .stepper .num::after { content: ". "; }
+}
+
+.step[hidden] { display: none; }
+
+.step-head { margin-bottom: 1.5rem; }
+.step-head h3 {
+  font-size: clamp(1.25rem, 1.1rem + 0.7vw, 1.6rem);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.step-head p { color: var(--muted); margin: 0.4rem 0 0; font-size: 0.9375rem; }
+
+.step-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 2rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--line);
+}
+.step-nav .spacer { flex: 1 1 auto; }
+.step-nav .note { font-size: 0.8438rem; color: var(--muted); margin: 0; flex: 1 1 100%; order: 3; }
+@media (min-width: 40rem) {
+  .step-nav .note { flex: 1 1 auto; order: 0; }
 }
 
 .field-grid { display: grid; gap: 1.35rem; }
@@ -755,15 +776,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
   transition-delay: var(--d, 0ms);
 }
-.js .hero .mark::before { transform: scaleX(0); }
-.js .hero .mark.swipe::before {
-  transform: scaleX(1);
-  transition: transform 0.72s var(--ease) 0.25s;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .js .reveal, .js .reveal.in { opacity: 1; transform: none; transition: opacity 0.01ms; }
-  .js .hero .mark::before, .js .hero .mark.swipe::before { transform: scaleX(1); transition: none; }
   .spinner { animation-duration: 2s; }
   * { scroll-behavior: auto !important; }
 }
@@ -802,8 +817,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
           An online IELTS preparation course taught in small groups, with a full mock test every week and written feedback on every essay you submit.
         </p>
         <div class="hero-cta">
-          <a class="btn btn--accent btn--lg" href="#register">Register for a group</a>
-          <a class="btn btn--lg btn--ghost" href="#syllabus" style="--btn-fg: oklch(0.97 0.006 110); border-color: oklch(1 0 0 / 0.35);">See what you study</a>
+          <a class="btn btn--lg" href="#register">Register</a>
+          <a class="btn btn--lg btn--ghost" href="#syllabus">See what you study</a>
         </div>
       </div>
 
@@ -898,7 +913,23 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
         </div>
 
         <form id="regForm" novalidate autocomplete="on">
-          <div class="field-grid">
+
+          <ol class="stepper" id="stepper">
+            <li data-state="current"><span class="num">1</span><span class="label">About you</span></li>
+            <li><span class="num">2</span><span class="label">Your course</span></li>
+            <li><span class="num">3</span><span class="label">Your English</span></li>
+          </ol>
+
+          <!-- Announces the step change to screen readers without moving focus. -->
+          <p id="stepStatus" class="honeypot" role="status" aria-live="polite"></p>
+
+          <!-- ---------- Step 1 ---------- -->
+          <section class="step" id="step-1" tabindex="-1" aria-labelledby="step-1-title">
+            <div class="step-head">
+              <h3 id="step-1-title">About you</h3>
+              <p>So we can confirm your place.</p>
+            </div>
+            <div class="field-grid">
 
             <div class="field">
               <label for="name">Full name <span class="req" aria-hidden="true">*</span></label>
@@ -931,6 +962,21 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
                      aria-describedby="email-error" placeholder="you@example.com">
               <span class="error" aria-live="polite" id="email-error"></span>
             </div>
+
+            </div>
+            <div class="step-nav">
+              <div class="spacer"></div>
+              <button class="btn btn--lg" type="button" data-next="2">Continue</button>
+            </div>
+          </section>
+
+          <!-- ---------- Step 2 ---------- -->
+          <section class="step" id="step-2" tabindex="-1" aria-labelledby="step-2-title" hidden>
+            <div class="step-head">
+              <h3 id="step-2-title">Your course</h3>
+              <p>What you want to study, and when.</p>
+            </div>
+            <div class="field-grid">
 
             <div class="field span-2">
               <fieldset>
@@ -988,6 +1034,22 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
               </select>
             </div>
 
+            </div>
+            <div class="step-nav">
+              <button class="btn btn--lg btn--ghost" type="button" data-back="1">Back</button>
+              <div class="spacer"></div>
+              <button class="btn btn--lg" type="button" data-next="3">Continue</button>
+            </div>
+          </section>
+
+          <!-- ---------- Step 3 ---------- -->
+          <section class="step" id="step-3" tabindex="-1" aria-labelledby="step-3-title" hidden>
+            <div class="step-head">
+              <h3 id="step-3-title">Your English</h3>
+              <p>Tell us what you find hard, so we can place you well. Everything here is optional.</p>
+            </div>
+            <div class="field-grid">
+
             <div class="field span-2">
               <fieldset>
                 <legend class="legend" id="reading-legend">What do you find hard in Reading?</legend>
@@ -1020,20 +1082,22 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
               </label>
               <span class="error" aria-live="polite" id="consent-error"></span>
             </div>
-          </div>
+
+            </div>
+            <div class="step-nav">
+              <button class="btn btn--lg btn--ghost" type="button" data-back="2">Back</button>
+              <p class="note">Your details go to the course teacher only.</p>
+              <button class="btn btn--lg" type="submit" id="submitBtn">
+                <span id="submitLabel">Send registration</span>
+              </button>
+            </div>
+          </section>
 
           <!-- Bot trap. Deliberately not named "website" or "company": password
                managers autofill those and would silently flag real students. -->
           <div class="honeypot" aria-hidden="true">
             <label for="company_ref">Leave this field empty</label>
             <input id="company_ref" name="company_ref" type="text" tabindex="-1" autocomplete="off">
-          </div>
-
-          <div class="form-footer">
-            <p class="note">Your details go to the course teacher only. Nothing is shared with anyone else.</p>
-            <button class="btn btn--lg" type="submit" id="submitBtn">
-              <span id="submitLabel">Send registration</span>
-            </button>
           </div>
         </form>
 
@@ -1450,13 +1514,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     $$('.reveal').forEach(function (node) { node.classList.add('in'); });
   }
 
-  // Hero highlighter swipe, after first paint.
-  requestAnimationFrame(function () {
-    requestAnimationFrame(function () {
-      var mark = $('#heroMark');
-      if (mark) mark.classList.add('swipe');
-    });
-  });
 
   /* ============================================================
      Form
@@ -1744,6 +1801,99 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     }
   }
 
+  /* ---------- Steps ---------- */
+  // Which rules belong to which step, so Continue only validates what is
+  // visible. Anything not listed is checked at submit time regardless.
+  var STEP_FIELDS = {
+    1: ['name', 'phone', 'telegram', 'email'],
+    2: ['course', 'level', 'format', 'startDate', 'timeline'],
+    3: ['notes', 'consent']
+  };
+  var TOTAL_STEPS = 3;
+  var currentStep = 1;
+
+  function showStep(step, moveFocus) {
+    currentStep = step;
+
+    for (var i = 1; i <= TOTAL_STEPS; i++) {
+      var section = $('#step-' + i);
+      if (section) section.hidden = i !== step;
+    }
+
+    $$('#stepper li').forEach(function (item, index) {
+      var n = index + 1;
+      item.setAttribute('data-state', n === step ? 'current' : (n < step ? 'done' : 'todo'));
+      if (n === step) item.setAttribute('aria-current', 'step');
+      else item.removeAttribute('aria-current');
+    });
+
+    var title = $('#step-' + step + '-title');
+    $('#stepStatus').textContent =
+      'Step ' + step + ' of ' + TOTAL_STEPS + (title ? ': ' + title.textContent : '');
+
+    if (moveFocus) {
+      var section = $('#step-' + step);
+      if (section) section.focus({ preventScroll: true });
+      var shell = $('.form-shell');
+      if (shell) shell.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+  }
+
+  /** Which step a given field lives on, or 0 if it is not on any. */
+  function stepOf(field) {
+    for (var step in STEP_FIELDS) {
+      if (STEP_FIELDS[step].indexOf(field) !== -1) return Number(step);
+    }
+    return 0;
+  }
+
+  /** Validate one step. Returns true if it is safe to move on. */
+  function validateStep(step) {
+    var fields = (STEP_FIELDS[step] || []).filter(function (f) { return RULES[f]; });
+    var invalid = fields.filter(function (field) { return !validateField(field); });
+    if (!invalid.length) return true;
+
+    var first = controlFor(invalid[0]);
+    if (first) {
+      first.focus({ preventScroll: true });
+      first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    setBanner(
+      invalid.length === 1 ? 'One field needs your attention' : invalid.length + ' fields need your attention',
+      document.createTextNode('Check the highlighted fields, then continue.'),
+      false
+    );
+    return false;
+  }
+
+  $$('[data-next]', form).forEach(function (button) {
+    button.addEventListener('click', function () {
+      hideBanner();
+      if (!validateStep(currentStep)) return;
+      showStep(Number(button.getAttribute('data-next')), true);
+    });
+  });
+
+  $$('[data-back]', form).forEach(function (button) {
+    button.addEventListener('click', function () {
+      hideBanner();
+      showStep(Number(button.getAttribute('data-back')), true);
+    });
+  });
+
+  // Enter in a text field should advance rather than submit from step 1 or 2.
+  form.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter') return;
+    var tag = event.target.tagName;
+    if (tag === 'TEXTAREA' || tag === 'BUTTON') return;
+    if (currentStep === TOTAL_STEPS) return;
+    event.preventDefault();
+    var next = $('#step-' + currentStep + ' [data-next]');
+    if (next) next.click();
+  });
+
+  showStep(1, false);
+
   function showSuccess(fullName) {
     clearDraft();
     hideBanner();
@@ -1763,6 +1913,11 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 
     var invalid = Object.keys(RULES).filter(function (field) { return !validateField(field); });
     if (invalid.length) {
+      // The offending field may be on a step that is currently hidden, so go
+      // back to it rather than focusing something the student cannot see.
+      var step = stepOf(invalid[0]);
+      if (step && step !== currentStep) showStep(step, false);
+
       var first = controlFor(invalid[0]);
       if (first) {
         first.focus({ preventScroll: true });
@@ -1770,7 +1925,11 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       }
       setBanner(
         invalid.length === 1 ? 'One field needs your attention' : invalid.length + ' fields need your attention',
-        document.createTextNode('Check the highlighted fields above and send again.'),
+        document.createTextNode(
+          step && step !== currentStep
+            ? 'We have taken you back to step ' + step + '. Check the highlighted fields.'
+            : 'Check the highlighted fields above and send again.'
+        ),
         false
       );
       return;
