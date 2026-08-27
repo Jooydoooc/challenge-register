@@ -398,98 +398,14 @@ img[hidden] { display: none; }
   .syllabus li { grid-template-columns: 7rem minmax(0, 20ch) minmax(0, 1fr); align-items: baseline; }
 }
 .syllabus .wk {
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding-top: 0.25rem;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--primary);
 }
 .syllabus h3 { font-family: var(--sans); font-size: 1.0625rem; font-weight: 650; letter-spacing: 0; }
 .syllabus p { color: var(--muted); font-size: 0.9688rem; margin: 0; }
 
-/* Schedule table */
-.table-scroll {
-  overflow-x: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--bg);
-  -webkit-overflow-scrolling: touch;
-}
-.table-scroll:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
-table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: 0.9688rem; }
-caption { text-align: left; padding: 1rem 1.25rem; color: var(--muted); font-size: 0.9rem; border-bottom: 1px solid var(--line); }
-th, td { text-align: left; padding: 0.95rem 1.25rem; border-bottom: 1px solid var(--line); }
-thead th {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 500;
-  background: var(--surface);
-}
-tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
-tbody th { font-weight: 650; }
-td .full { color: var(--muted); }
-
-/* Instructor: asymmetric, no card */
-.instructor { display: grid; gap: clamp(1.75rem, 4vw, 3.5rem); }
-@media (min-width: 54rem) {
-  .instructor { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); align-items: start; }
-}
-.instructor-name { font-size: clamp(1.9rem, 1.4rem + 2vw, 2.9rem); }
-.instructor-role { color: var(--muted); margin-top: 0.75rem; font-size: 1.0625rem; }
-.instructor-photo {
-  width: 100%;
-  max-width: 15rem;
-  aspect-ratio: 4 / 5;
-  object-fit: cover;
-  border-radius: var(--radius-lg);
-  margin-bottom: 1.75rem;
-  background: var(--surface-2);
-}
-.creds { list-style: none; margin: 1.75rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
-.creds li { display: flex; gap: 0.75rem; align-items: baseline; color: var(--muted); font-size: 0.9688rem; }
-.creds li::before {
-  content: "";
-  flex: none;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 2px;
-  background: var(--accent);
-  translate: 0 0.05rem;
-}
-
-/* FAQ */
-.faq { max-width: 52rem; }
-.faq details { border-bottom: 1px solid var(--line); }
-.faq details:first-of-type { border-top: 1px solid var(--line); }
-.faq summary {
-  cursor: pointer;
-  list-style: none;
-  padding: 1.35rem 3rem 1.35rem 0;
-  font-weight: 600;
-  font-size: 1.0625rem;
-  position: relative;
-  display: block;
-}
-.faq summary::-webkit-details-marker { display: none; }
-.faq summary::after {
-  content: "";
-  position: absolute;
-  right: 0.4rem;
-  top: 50%;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-right: 2px solid var(--muted);
-  border-bottom: 2px solid var(--muted);
-  translate: 0 -60%;
-  rotate: 45deg;
-  transition: rotate 0.25s var(--ease), translate 0.25s var(--ease);
-}
-.faq details[open] summary::after { rotate: -135deg; translate: 0 -20%; }
-.faq .answer { padding: 0 0 1.5rem; color: var(--muted); }
 
 /* ============================================================
    Registration form
@@ -541,6 +457,9 @@ td .full { color: var(--muted); }
 }
 
 .step[hidden] { display: none; }
+/* Focused only so screen readers announce the new step. It is not an
+   interactive element, so a ring around the whole panel is just noise. */
+.step:focus, .step:focus-visible { outline: none; }
 
 .step-head { margin-bottom: 1.5rem; }
 .step-head h3 {
@@ -798,9 +717,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     <a class="wordmark" href="#top" data-cfg="course.short">Challenge</a>
     <nav class="nav" aria-label="Sections">
       <a href="#syllabus">What you study</a>
-      <a href="#schedule">Groups</a>
-      <a href="#instructor">Teacher</a>
-      <a href="#faq">Questions</a>
     </nav>
     <a class="btn" href="#register">Register</a>
   </div>
@@ -812,9 +728,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   <section class="hero">
     <div class="wrap hero-grid">
       <div>
-        <h1>Eight weeks to the band <span class="mark" id="heroMark" data-cfg="course.heroBand">you need</span>.</h1>
+        <h1>Thirty-five days on <span class="mark" data-cfg="course.heroBand">Reading and Listening</span>.</h1>
         <p class="hero-lede" data-cfg="course.tagline">
-          An online IELTS preparation course taught in small groups, with a full mock test every week and written feedback on every essay you submit.
+          Thirty-five days on IELTS Reading and Listening: every task type, worked through until it is routine.
         </p>
         <div class="hero-cta">
           <a class="btn btn--lg" href="#register">Register</a>
@@ -830,60 +746,10 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   <section class="section" id="syllabus">
     <div class="wrap">
       <div class="section-head reveal">
-        <h2>What you study, week by week</h2>
-        <p>Each week covers one skill in depth, then puts it under exam conditions on Saturday. Nothing is theoretical: every task type you meet here appears on the real test.</p>
+        <h2>What you study</h2>
+        <p>Two skills, covered completely. Every task type below appears on the real test, and you work through each one until it stops being a surprise.</p>
       </div>
       <ol class="syllabus" id="syllabusList"><!-- rendered from CONFIG --></ol>
-    </div>
-  </section>
-
-  <!-- Schedule -->
-  <section class="section section--surface" id="schedule">
-    <div class="wrap">
-      <div class="section-head reveal">
-        <h2>Groups and times</h2>
-        <p>Every group covers identical material. Pick whichever time you can attend consistently, because recordings are a poor substitute for speaking practice.</p>
-      </div>
-      <!-- tabindex makes the horizontal scroll reachable without a pointer. -->
-      <div class="table-scroll reveal" tabindex="0" role="region" aria-label="Group times">
-        <table>
-          <caption id="scheduleCaption">All times are Tashkent time (UTC+5). Lessons run live on Zoom.</caption>
-          <thead>
-            <tr>
-              <th scope="col">Group</th>
-              <th scope="col">Days</th>
-              <th scope="col">Time</th>
-              <th scope="col">Places</th>
-            </tr>
-          </thead>
-          <tbody id="scheduleBody"><!-- rendered from CONFIG --></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- Instructor -->
-  <section class="section" id="instructor">
-    <div class="wrap instructor reveal">
-      <div>
-        <img class="instructor-photo" id="instructorPhoto" alt="" hidden>
-        <h2 class="instructor-name" data-cfg="instructor.name">Your teacher</h2>
-        <p class="instructor-role" data-cfg="instructor.role">IELTS instructor</p>
-      </div>
-      <div>
-        <div id="instructorBio"><!-- rendered from CONFIG --></div>
-        <ul class="creds" id="instructorCreds"><!-- rendered from CONFIG --></ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- FAQ -->
-  <section class="section section--surface section--tight" id="faq">
-    <div class="wrap">
-      <div class="section-head reveal">
-        <h2>Questions students ask</h2>
-      </div>
-      <div class="faq reveal" id="faqList"><!-- rendered from CONFIG --></div>
     </div>
   </section>
 
@@ -994,14 +860,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
               </select>
               <span class="hint" id="level-hint">Not sure? Pick the closest and we will check with you.</span>
               <span class="error" aria-live="polite" id="level-error"></span>
-            </div>
-
-            <div class="field">
-              <label for="startDate">When do you want to start? <span class="req" aria-hidden="true">*</span></label>
-              <input id="startDate" name="startDate" type="date" required
-                     aria-describedby="startDate-hint startDate-error">
-              <span class="hint" id="startDate-hint">Pick a date, or type it as dd/mm/yyyy.</span>
-              <span class="error" aria-live="polite" id="startDate-error"></span>
             </div>
 
             <div class="field span-2">
@@ -1141,14 +999,16 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     course: {
       name: 'Challenge',
       short: 'Challenge',                   // header wordmark
-      heroBand: 'you need',                 // highlighted words in the H1
-      tagline: 'An online IELTS preparation course taught in small groups, with a full mock test every week and written feedback on every essay you submit.', // TODO
-      facts: [                              // TODO: shown in the hero panel
-        { label: 'Starts',   value: '15 September' },
-        { label: 'Length',   value: '8 weeks' },
-        { label: 'Format',   value: 'Live on Zoom' },
-        { label: 'Price',    value: '1 200 000 UZS' },
-        { label: 'Places',   value: '9 left', highlight: true }
+      heroBand: 'Reading and Listening',    // highlighted words in the H1
+      tagline: 'Thirty-five days on IELTS Reading and Listening: every task type, worked through until it is routine.',
+      facts: [
+        { label: 'Starts',   value: '5 September' },
+        { label: 'Length',   value: '35 days' },
+        { label: 'Format',   value: 'Offline or online' },
+        { label: 'Price',    value: '300 000 UZS for external students' },
+        { label: 'Internal students', value: 'Free' },
+        { label: 'Places',   value: 'Unlimited' },
+        { label: 'Register by', value: '4 September, 23:59', highlight: true }
       ]
     },
 
@@ -1186,50 +1046,19 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       'Losing concentration'
     ],
 
-    // Shown in the schedule table on the page. Informational only now that
-    // students pick their own start date.
-    schedule: [                             // TODO
-      { group: 'Morning A',  days: 'Mon / Wed / Fri', time: '08:00 – 09:30', places: '4 left' },
-      { group: 'Evening B',  days: 'Mon / Wed / Fri', time: '19:00 – 20:30', places: '2 left' },
-      { group: 'Weekend C',  days: 'Sat / Sun',       time: '10:00 – 13:00', places: '3 left' },
-      { group: 'Evening D',  days: 'Tue / Thu',       time: '19:00 – 21:00', places: 'Full', full: true }
-    ],
-    scheduleNote: 'All times are Tashkent time (UTC+5). Lessons run live on Zoom.', // TODO
-
-    // A real sequence, so it is numbered.
-    modules: [                              // TODO
-      { week: 'Week 1', title: 'Diagnostic and Reading skills', blurb: 'Full diagnostic test, then skimming, scanning and how to handle True / False / Not Given without second-guessing yourself.' },
-      { week: 'Week 2', title: 'Reading under time pressure',   blurb: 'Matching headings, matching information, and a timing plan that leaves you ten minutes for the third passage.' },
-      { week: 'Week 3', title: 'Listening Parts 1 and 2',       blurb: 'Form and map completion, spelling and number traps, and what to do after you lose your place.' },
-      { week: 'Week 4', title: 'Listening Parts 3 and 4',       blurb: 'Academic discussions and lectures: prediction, paraphrase recognition, multiple choice with long options.' },
-      { week: 'Week 5', title: 'Writing Task 1',                blurb: 'Line graphs, bar charts, tables, processes and maps. Selecting key features rather than listing every number.' },
-      { week: 'Week 6', title: 'Writing Task 2',                blurb: 'Essay types, paragraph structure, and the vocabulary and grammar that actually move you from 6.0 to 7.0.' },
-      { week: 'Week 7', title: 'Speaking Parts 1, 2 and 3',     blurb: 'Fluency drills, the two-minute long turn, and giving extended answers to abstract questions.' },
-      { week: 'Week 8', title: 'Full mock and review',          blurb: 'A complete timed test in exam conditions, then one-to-one feedback on your result and a plan for test day.' }
-    ],
-
-    instructor: {
-      name: 'TODO: Teacher name',
-      role: 'TODO: IELTS instructor, Band 8.5',
-      photo: '',                            // optional: data URI or file next to this page
-      bio: [                                // TODO: one string per paragraph
-        'TODO: Two or three sentences about who you are, how long you have taught IELTS, and what your students typically achieve.',
-        'TODO: A second paragraph about how you teach, and what a lesson actually looks like.'
-      ],
-      credentials: [                        // TODO
-        'TODO: Overall Band 8.5',
-        'TODO: 6 years teaching IELTS preparation',
-        'TODO: 400+ students, average gain 1.0 band'
-      ]
-    },
-
-    faq: [                                  // TODO
-      { q: 'What if I miss a lesson?', a: 'Every lesson is recorded and shared the same evening, and materials are posted in the group chat. Speaking practice cannot be recovered from a recording, so try not to miss more than two lessons.' },
-      { q: 'How large are the groups?', a: 'Eight students maximum. That is the number that still leaves everyone speaking time in a ninety-minute lesson.' },
-      { q: 'Is the mock test included?', a: 'Yes. There is a full timed mock every Saturday, marked with written feedback, and a final complete test in week eight.' },
-      { q: 'How do I pay?', a: 'After you register we message you on Telegram with bank transfer details. Nothing is paid on this page.' },
-      { q: 'Can I switch groups?', a: 'Once, in the first two weeks, if there is a free place in the group you want.' },
-      { q: 'What level do I need to start?', a: 'Intermediate or above. If you are below that, tell us in the notes field and we will suggest a general English course first.' }
+    // The two skills the course covers. Built from the same task lists the
+    // registration form asks about, so the page and the form stay consistent.
+    modules: [
+      {
+        week: 'Reading',
+        title: 'Every Reading task type',
+        blurb: 'Matching Headings. True/False/Not Given. Yes/No/Not Given. Multiple Choice. Sentence and Summary Completion. Alongside them: time management, the vocabulary the questions actually turn on, and how to understand a passage without reading every word.'
+      },
+      {
+        week: 'Listening',
+        title: 'Every Listening task type',
+        blurb: 'Multiple Choice. Map Labelling. Matching. Form and Note Completion. Alongside them: spelling, keeping your place in the recording, coping with unfamiliar accents, and holding concentration for the full test.'
+      }
     ],
 
     contact: {
@@ -1297,63 +1126,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     });
   }
 
-  function renderSchedule() {
-    var body = $('#scheduleBody');
-    if (!body) return;
-    body.textContent = '';
-    (CONFIG.schedule || []).forEach(function (row) {
-      var tr = el('tr');
-      var th = el('th', null, row.group);
-      th.setAttribute('scope', 'row');
-      tr.appendChild(th);
-      tr.appendChild(el('td', null, row.days));
-      tr.appendChild(el('td', null, row.time));
-      var places = el('td');
-      places.appendChild(el('span', row.full ? 'full' : null, row.places || (row.full ? 'Full' : 'Open')));
-      tr.appendChild(places);
-      body.appendChild(tr);
-    });
-    if (CONFIG.scheduleNote) $('#scheduleCaption').textContent = CONFIG.scheduleNote;
-  }
-
-  function renderInstructor() {
-    var bio = $('#instructorBio');
-    if (bio) {
-      bio.textContent = '';
-      (CONFIG.instructor.bio || []).forEach(function (para) {
-        bio.appendChild(el('p', null, para));
-      });
-    }
-    var creds = $('#instructorCreds');
-    if (creds) {
-      creds.textContent = '';
-      (CONFIG.instructor.credentials || []).forEach(function (item) {
-        creds.appendChild(el('li', null, item));
-      });
-    }
-    var photo = $('#instructorPhoto');
-    if (photo && CONFIG.instructor.photo) {
-      photo.src = CONFIG.instructor.photo;
-      photo.alt = 'Photograph of ' + CONFIG.instructor.name;
-      photo.hidden = false;
-    }
-  }
-
-  function renderFaq() {
-    var list = $('#faqList');
-    if (!list) return;
-    list.textContent = '';
-    (CONFIG.faq || []).forEach(function (entry) {
-      var details = el('details');
-      var summary = el('summary', null, entry.q);
-      var answer = el('div', 'answer');
-      answer.appendChild(el('p', null, entry.a));
-      details.appendChild(summary);
-      details.appendChild(answer);
-      list.appendChild(details);
-    });
-  }
-
   /** Radio group rendered from a list of {name, blurb}. */
   function renderRadios(boxId, field, items) {
     var box = $('#' + boxId);
@@ -1411,23 +1183,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     });
   }
 
-  /** Today, in the yyyy-mm-dd form a date input needs. */
-  function isoToday() {
-    var now = new Date();
-    var local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 10);
-  }
-
-  function setDateBounds() {
-    var input = $('#startDate');
-    if (!input) return;
-    input.min = isoToday(); // nobody starts in the past
-    var year = new Date();
-    year.setFullYear(year.getFullYear() + 1);
-    input.max = new Date(year.getTime() - year.getTimezoneOffset() * 60000)
-      .toISOString().slice(0, 10);
-  }
-
   function renderContacts() {
     var tg = CONFIG.contact.telegram ? String(CONFIG.contact.telegram).replace(/^@/, '') : '';
     var links = $('#footerLinks');
@@ -1467,15 +1222,11 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     renderStaticText();
     renderFacts();
     renderSyllabus();
-    renderSchedule();
-    renderInstructor();
-    renderFaq();
     renderRadios('courseChoices', 'course', CONFIG.courses);
     renderRadios('formatChoices', 'format', CONFIG.formats);
     renderChecks('readingChecks', 'reading', CONFIG.readingDifficulties);
     renderChecks('listeningChecks', 'listening', CONFIG.listeningDifficulties);
     renderLevels();
-    setDateBounds();
     renderContacts();
   } catch (e) {
     if (window.console) console.error('CONFIG could not be rendered:', e);
@@ -1558,16 +1309,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     course: function (v) { return v ? '' : 'Please choose a course.'; },
     level: function (v) { return v ? '' : 'Please choose your level.'; },
     format: function (v) { return v ? '' : 'Please choose offline or online.'; },
-    startDate: function (v) {
-      if (!v) return 'Please choose a start date.';
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return 'Please enter the date as dd/mm/yyyy.';
-      var picked = new Date(v + 'T00:00:00');
-      if (isNaN(picked.getTime())) return 'That date is not valid.';
-      var today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (picked < today) return 'Please choose today or a later date.';
-      return '';
-    },
     timeline: function (v) {
       if (!v) return '';
       if (!/^\d{1,4}$/.test(v)) return 'Please enter a number of days.';
@@ -1687,7 +1428,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   notes.addEventListener('input', updateCounter);
 
   /* ---------- Draft ---------- */
-  var DRAFT_FIELDS = ['name', 'phone', 'telegram', 'email', 'level', 'startDate', 'timeline', 'source', 'notes'];
+  var DRAFT_FIELDS = ['name', 'phone', 'telegram', 'email', 'level', 'timeline', 'source', 'notes'];
   var saveTimer;
 
   function saveDraft() {
@@ -1726,8 +1467,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
         var match = Array.prototype.some.call(node.options, function (opt) { return opt.value === draft[field]; });
         if (!match) return;
       }
-      // A saved start date may have gone stale while the tab was closed.
-      if (field === 'startDate' && RULES.startDate(draft[field])) return;
       node.value = draft[field];
     });
 
@@ -1806,7 +1545,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   // visible. Anything not listed is checked at submit time regardless.
   var STEP_FIELDS = {
     1: ['name', 'phone', 'telegram', 'email'],
-    2: ['course', 'level', 'format', 'startDate', 'timeline'],
+    2: ['course', 'level', 'format', 'timeline'],
     3: ['notes', 'consent']
   };
   var TOTAL_STEPS = 3;
@@ -1956,7 +1695,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       course: valueOf('course'),
       level: valueOf('level'),
       format: valueOf('format'),
-      startDate: valueOf('startDate'),
       timeline: valueOf('timeline'),
       reading: checkedValues('reading'),
       listening: checkedValues('listening'),

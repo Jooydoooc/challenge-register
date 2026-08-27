@@ -26,7 +26,6 @@ const FIELDS = [
   { key: 'course', label: 'Course', required: true, max: 40 },
   { key: 'level', label: 'Level', required: true, max: 40 },
   { key: 'format', label: 'Format', required: true, max: 20 },
-  { key: 'startDate', label: 'Start date', required: true, max: 10 },
   { key: 'timeline', label: 'Days to goal', required: false, max: 12 },
   { key: 'source', label: 'Heard via', required: false, max: 40 },
   { key: 'notes', label: 'Notes', required: false, max: 500 },
@@ -235,9 +234,6 @@ function validate(payload) {
   if (data.format && !FORMATS.includes(data.format)) {
     errors.push('Format is not valid');
   }
-  if (data.startDate && !isSaneDate(data.startDate)) {
-    errors.push('Start date is not valid');
-  }
   if (data.timeline && !/^\d{1,4}$/.test(data.timeline)) {
     errors.push('Days to goal must be a number');
   }
@@ -255,19 +251,6 @@ function validate(payload) {
   }
 
   return { data, errors };
-}
-
-/** yyyy-mm-dd, a real calendar date, not in the past, within about a year. */
-function isSaneDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const date = new Date(value + 'T00:00:00Z');
-  if (isNaN(date.getTime())) return false;
-  if (date.toISOString().slice(0, 10) !== value) return false; // rejects 2026-02-31
-  const now = new Date();
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const yesterday = today.getTime() - 86400000; // tolerate timezone edges
-  const limit = today.getTime() + 400 * 86400000;
-  return date.getTime() >= yesterday && date.getTime() <= limit;
 }
 
 /** Keep only the entries that appear in `allowed`, deduplicated. */
@@ -331,8 +314,7 @@ function buildMessage(data, request) {
   lines.push(
     '',
     `<b>Course:</b> ${esc(data.course)} · ${esc(data.format)}`,
-    `<b>Level:</b> ${esc(data.level)}`,
-    `<b>Wants to start:</b> ${esc(formatDate(data.startDate))}`
+    `<b>Level:</b> ${esc(data.level)}`
   );
 
   if (data.timeline) lines.push(`<b>Days to goal:</b> ${esc(data.timeline)}`);
@@ -349,17 +331,6 @@ function buildMessage(data, request) {
   if (country) lines.push('', `<i>${esc(country)}</i>`);
 
   return lines.join('\n');
-}
-
-/** yyyy-mm-dd -> "3 September 2026", easier to read at a glance in Telegram. */
-function formatDate(value) {
-  const date = new Date(value + 'T00:00:00Z');
-  if (isNaN(date.getTime())) return value;
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
-  return `${date.getUTCDate()} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
 }
 
 async function sendToTelegram(env, data, request) {
