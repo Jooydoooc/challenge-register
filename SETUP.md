@@ -80,9 +80,14 @@ Open `index.html`, find the `CONFIG` block near the top of the `<script>`, and s
 endpoint: 'https://course-registration.your-name.workers.dev',
 ```
 
-Then fill in every `TODO` in the same block: course name, tagline, hero facts, groups,
-weekly modules, your bio, FAQ, and contact details. That block is the only place with
-content in it. Nothing else in the file needs editing.
+Everything else on the page comes from the same block: course name, tagline, the hero
+facts panel, the "what you study" entries, the registration form's course/level/format
+options and the two difficulty checklists, and your contact details. That block is the
+only place with content in it. Nothing else in the file needs editing.
+
+If you change the courses, levels, formats, or either difficulty list, you must make the
+same change to the matching arrays at the top of `worker/worker.js`. The Worker rejects
+any value it does not recognise, so they have to stay in step.
 
 ## 5. Test it
 

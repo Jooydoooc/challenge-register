@@ -6,52 +6,56 @@
 <title>DISCIPLINE — Registration</title>
 <meta name="description" content="Register for DISCIPLINE: 35 days on IELTS Reading and Listening, starting 5 September. Offline or online.">
 <meta name="color-scheme" content="light dark">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23384a1f'/%3E%3Crect x='6' y='17' width='20' height='7' rx='1.5' fill='%23dbe86a'/%3E%3Cpath d='M9 20h14' stroke='%23384a1f' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231e9df1'/%3E%3Cpath d='M9 16.5l5 5 9-10' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
 
 <style>
 /* ============================================================
    Tokens
-   Palette: neutral greys on white, one blue accent.
-   Chroma is 0 on every neutral: no hidden warmth or coolness.
+   Supplied theme, mapped onto this page's names.
+   Two substitutions, both for contrast; see the notes inline.
    ============================================================ */
 :root {
-  --bg:            oklch(1 0 0);
-  --surface:       oklch(0.978 0 0);
-  --surface-2:     oklch(0.950 0 0);
-  --line:          oklch(0.906 0 0);
-  --line-strong:   oklch(0.820 0 0);
-  --ink:           oklch(0.190 0 0);
-  --muted:         oklch(0.472 0 0);
+  --bg:            #ffffff;   /* background */
+  --surface:       #f7f8f8;   /* card */
+  --surface-2:     #E5E5E6;   /* muted */
+  --line:          #e1eaef;   /* border */
+  --line-strong:   #cbd8e0;
+  --ink:           #0f1419;   /* foreground */
+  /* Theme sets muted-foreground to #0f1419, identical to foreground, which
+     erases the difference between body text and secondary text. Using the
+     matching mid-grey from the same family instead: 5.9:1 on white. */
+  --muted:         #536471;
 
-  --primary:       oklch(0.520 0.170 255);  /* blue: links, focus rings */
-  --primary-fill:  oklch(0.520 0.170 255);  /* filled buttons; must carry white text */
-  --primary-hover: oklch(0.450 0.170 255);
-  --primary-deep:  oklch(0.300 0.090 255);
-  --primary-ink:   oklch(1 0 0);            /* text on a filled blue */
-  --primary-soft:  oklch(0.962 0.024 255);  /* selected row tint */
+  --primary:       #1e9df1;   /* the brand blue: focus rings, dot, progress */
+  /* The brand blue is 2.94:1 on white, so it cannot carry text or a white
+     label. Two darker steps of the same hue do that work; everything
+     decorative keeps #1e9df1 exactly. */
+  --primary-text:  #187bbd;   /* blue used as text: 4.56:1 on white */
+  --primary-fill:  #0b70b8;   /* filled buttons: white label at 5.22:1 */
+  --primary-hover: #095c97;
+  --primary-ink:   #ffffff;   /* primary-foreground */
+  --primary-soft:  #E3ECF6;   /* accent */
 
   --accent:        var(--primary);
   --accent-ink:    var(--primary-ink);
 
-  --field-border:  oklch(0.655 0 0);        /* 3:1 vs --bg, per WCAG 1.4.11 */
-  --danger:        oklch(0.505 0.170 27);
-  --danger-soft:   oklch(0.965 0.022 27);
-  --ok:            oklch(0.470 0.105 155);
+  /* border #e1eaef is 1.15:1 on white; a control outline needs 3:1. */
+  --field-border:  #83919d;   /* 3.06:1 on the input background */
+  --danger:        #c31622;   /* destructive #f4212e is 3.4:1 on white */
+  --danger-soft:   #fdecee;
 
-  --field-bg:      oklch(1 0 0);
+  --field-bg:      #f7f9fa;   /* input */
 
-  /* Type: one family, hierarchy from weight and scale. */
-  --display: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --display: "Open Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --sans: "Open Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   /* Space */
   --gutter: clamp(1.25rem, 5vw, 3.5rem);
   --measure: 68ch;
-  --radius: 8px;
-  --radius-lg: 14px;
+  --radius: 1.3rem;
+  --radius-lg: 1.3rem;
 
-  --shadow: 0 1px 2px oklch(0 0 0 / 0.05), 0 8px 24px -12px oklch(0 0 0 / 0.14);
+  --shadow: 0 2px 0px 0px rgba(29,161,242,0.15);
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1); /* out-quint */
 
@@ -62,55 +66,34 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg:            oklch(0.170 0 0);
-    --surface:       oklch(0.222 0 0);
-    --surface-2:     oklch(0.262 0 0);
-    --line:          oklch(0.312 0 0);
-    --line-strong:   oklch(0.410 0 0);
-    --ink:           oklch(0.962 0 0);
-    --muted:         oklch(0.725 0 0);
+    --bg:            #000000;
+    --surface:       #17181c;   /* card */
+    --surface-2:     #22303c;
+    --line:          #242628;   /* border */
+    --line-strong:   #38444d;
+    --ink:           #e7e9ea;   /* foreground */
+    --muted:         #8b98a5;   /* theme's #72767a is 3.9:1 on black */
 
-    --primary:       oklch(0.620 0.170 255);
-    /* Darker than --primary so white text on it still clears 4.5:1. */
-    --primary-fill:  oklch(0.510 0.175 255);
-    --primary-hover: oklch(0.570 0.175 255);
-    --primary-deep:  oklch(0.255 0.055 255);
-    --primary-ink:   oklch(1 0 0);
-    --primary-soft:  oklch(0.275 0.045 255);
+    --primary:       #1c9cf0;
+    --primary-text:  #1c9cf0;   /* 7.06:1 on black, no adjustment needed */
+    --primary-fill:  #1272b8;   /* white on #1c9cf0 is 3.1:1 */
+    --primary-hover: #1685d6;
+    --primary-ink:   #ffffff;
+    --primary-soft:  #061622;   /* accent */
 
-    --field-border:  oklch(0.515 0 0);
-    --danger:        oklch(0.735 0.145 27);
-    --danger-soft:   oklch(0.262 0.045 27);
-    --ok:            oklch(0.780 0.125 155);
+    --field-border:  #647b90;   /* 3.07:1 on the dark input background */
+    --danger:        #ff6b73;   /* #f4212e is 3.9:1 on black */
+    --danger-soft:   #2a0f12;
 
-    --field-bg:      oklch(0.198 0 0);
+    --field-bg:      #22303c;   /* input */
 
-    --shadow: 0 1px 2px oklch(0 0 0 / 0.4), 0 10px 30px -14px oklch(0 0 0 / 0.6);
+    --shadow: 0 2px 0px 0px rgba(29,161,242,0.25);
   }
-}
 
-/* Browsers without oklch() treat every var() use as invalid at computed-value
-   time, which strips backgrounds off buttons and the dark bands. These hex
-   values are the resolved sRGB of the tokens above, so light mode is identical. */
-@supports not (color: oklch(0 0 0)) {
-  :root {
-    --bg:#fff; --surface:#f8f8f8; --surface-2:#eee; --line:#e2e2e2;
-    --line-strong:#c9c9c9; --field-border:#949494; --ink:#161616; --muted:#5c5c5c;
-    --primary:#1465c7; --primary-fill:#1465c7; --primary-hover:#0f52a5; --primary-deep:#12345c;
-    --primary-ink:#fff; --primary-soft:#eef4fd; --accent:#1465c7;
-    --accent-ink:#fff; --danger:#b32d26; --danger-soft:#fdeeec; --ok:#2e6b46;
-    --field-bg:#fff;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg:#1a1a1a; --surface:#262626; --surface-2:#303030; --line:#3b3b3b;
-      --line-strong:#525252; --field-border:#6b6b6b; --ink:#f3f3f3; --muted:#b0b0b0;
-      --primary:#4a90e8; --primary-fill:#1f6ed0; --primary-hover:#2b7ee0; --primary-deep:#17273c;
-      --primary-ink:#fff; --primary-soft:#1d2c40; --accent:#4a90e8;
-      --accent-ink:#fff; --danger:#e08b83; --danger-soft:#3a2724; --ok:#8fc7a3;
-      --field-bg:#1f1f1f;
-    }
-  }
+  /* --primary-fill is tuned to carry a white label, not to be read as text.
+     On the dark card it is only 3.48:1, so the highlighted fact uses the
+     lighter step instead: 5.97:1. */
+  .facts .seats { color: var(--primary-text); }
 }
 
 /* ============================================================
@@ -156,10 +139,10 @@ a { color: inherit; }
 img { max-width: 100%; height: auto; display: block; }
 img[hidden] { display: none; }
 
-/* Chartreuse on white is 1.4:1, far below the 3:1 a focus ring needs, so the
-   ring is the dark primary on light surfaces and the accent on the dark bands. */
+/* A focus indicator needs 3:1; the brand blue is 2.94:1 on white, so the
+   ring uses the darker step of the same hue. */
 :focus-visible {
-  outline: 3px solid var(--primary);
+  outline: 3px solid var(--primary-text);
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -193,7 +176,7 @@ img[hidden] { display: none; }
 .skip:focus { top: 0.5rem; }
 
 /* Emphasis in the heading: the blue carries it, no decoration. */
-.mark { color: var(--primary); }
+.mark { color: var(--primary-text); }
 
 /* ============================================================
    Header
@@ -202,7 +185,7 @@ img[hidden] { display: none; }
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  background: oklch(1 0 0 / 0.9);
+  background: rgba(255, 255, 255, 0.9);
   border-bottom: 1px solid transparent;
   transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
 }
@@ -210,7 +193,7 @@ img[hidden] { display: none; }
   .site-header { backdrop-filter: saturate(1.4) blur(10px); }
 }
 @media (prefers-color-scheme: dark) {
-  .site-header { background: oklch(0.163 0.008 110 / 0.88); }
+  .site-header { background: rgba(0, 0, 0, 0.88); }
 }
 .site-header[data-stuck="true"] { border-bottom-color: var(--line); }
 
@@ -302,10 +285,7 @@ img[hidden] { display: none; }
 .btn[aria-disabled="true"]:active { transform: none; }
 
 .btn--lg { min-height: 3.375rem; padding: 0.9rem 2rem; font-size: 1.0625rem; }
-.btn--block { width: 100%; }
 
-.btn--accent { --btn-bg: var(--accent); --btn-fg: var(--accent-ink); }
-.btn--accent:hover:not(:disabled) { --btn-bg: oklch(0.925 0.165 108); }
 
 .btn--ghost {
   --btn-bg: transparent;
@@ -372,14 +352,13 @@ img[hidden] { display: none; }
   text-align: right;
   font-size: 0.9375rem;
 }
-.facts .seats { color: var(--primary); }
+/* Sits on the tinted card, not white, so it needs the darker step. */
+.facts .seats { color: var(--primary-fill); }
 
 /* ============================================================
    Sections
    ============================================================ */
 .section { padding-block: clamp(3.5rem, 8vw, 6.5rem); }
-.section--tight { padding-block: clamp(2.75rem, 6vw, 5rem); }
-.section--surface { background: var(--surface); }
 
 .section-head { max-width: 44ch; margin-bottom: clamp(2rem, 4vw, 3.25rem); }
 .section-head p { color: var(--muted); margin-top: 0.9rem; }
@@ -401,7 +380,7 @@ img[hidden] { display: none; }
   font-size: 1.0625rem;
   font-weight: 650;
   letter-spacing: -0.01em;
-  color: var(--primary);
+  color: var(--primary-text);
 }
 .syllabus h3 { font-family: var(--sans); font-size: 1.0625rem; font-weight: 650; letter-spacing: 0; }
 .syllabus p { color: var(--muted); font-size: 0.9688rem; margin: 0; }
@@ -415,7 +394,7 @@ img[hidden] { display: none; }
 .form-shell {
   background: var(--bg);
   color: var(--ink);
-  border: 1px solid var(--line); /* the card needs an edge on the dark band */
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: clamp(1.5rem, 4vw, 3rem);
   box-shadow: var(--shadow);
@@ -526,7 +505,7 @@ input:hover:not(:disabled), select:hover:not(:disabled), textarea:hover:not(:dis
 }
 /* A real outline, not a box-shadow: shadows are dropped in forced-colors mode. */
 input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 3px solid var(--primary);
+  outline: 3px solid var(--primary-text);
   outline-offset: 1px;
   border-color: var(--primary);
 }
@@ -562,7 +541,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .choice:hover { background: var(--surface); }
 .choice input { flex: none; margin: 0.2rem 0 0; width: 1.05rem; height: 1.05rem; accent-color: var(--primary); }
 .choice:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
-.choice:has(input:focus-visible) { outline: 3px solid var(--primary); outline-offset: 2px; }
+.choice:has(input:focus-visible) { outline: 3px solid var(--primary-text); outline-offset: 2px; }
 .choice:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
 .choice-meta { display: block; font-weight: 400; color: var(--muted); font-size: 0.8438rem; margin-top: 0.15rem; }
 
@@ -571,7 +550,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .checks {
   display: grid;
   gap: 0.4rem;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  /* min() so the track can shrink below 15rem on narrow phones instead of
+     overflowing the card. */
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
 }
 .check {
   display: flex;
@@ -587,7 +568,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .check:hover { background: var(--surface); }
 .check input { flex: none; margin: 0; width: 1.1rem; height: 1.1rem; accent-color: var(--primary); }
 .check:has(input:checked) { background: var(--primary-soft); font-weight: 550; }
-.check:has(input:focus-visible) { outline: 3px solid var(--primary); outline-offset: 2px; }
+.check:has(input:focus-visible) { outline: 3px solid var(--primary-text); outline-offset: 2px; }
 
 .consent {
   display: flex;
@@ -605,6 +586,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .counter { font-variant-numeric: tabular-nums; font-size: 0.8125rem; color: var(--muted); align-self: flex-end; }
 .counter[data-over="true"] { color: var(--danger); font-weight: 600; }
 
+/* Used by two things: the bot trap, and the visually-hidden step-change
+   live region. Do not delete it with the trap. */
 .honeypot {
   position: absolute;
   width: 1px; height: 1px;
@@ -873,7 +856,11 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 
             <div class="field">
               <label for="timeline">How many days do you have to reach your goal?</label>
-              <input id="timeline" name="timeline" type="number" inputmode="numeric" min="1" max="1095"
+              <!-- text, not number: type=number silently discards "12abc",
+                   losing the answer with no message, and skips the styling
+                   below. inputmode still gives phones a numeric keypad. -->
+              <input id="timeline" name="timeline" type="text" inputmode="numeric"
+                     maxlength="12" autocomplete="off"
                      aria-describedby="timeline-hint timeline-error" placeholder="90">
               <span class="hint" id="timeline-hint">Leave empty if you have no deadline.</span>
               <span class="error" aria-live="polite" id="timeline-error"></span>
@@ -1499,11 +1486,13 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 
   /* ---------- Submit ---------- */
   function setBanner(title, detail, html) {
+    // Expose the alert before writing into it. A role="alert" that is still
+    // display:none when its text changes is announced unreliably.
+    banner.setAttribute('data-visible', 'true');
     $('#errorTitle').textContent = title;
     var slot = $('#errorDetail');
     slot.textContent = '';
     slot.appendChild(detail);
-    banner.setAttribute('data-visible', 'true');
     if (html !== false) banner.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
@@ -1674,14 +1663,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       return;
     }
 
-    // Honeypot tripped. Almost certainly a bot, but if an overeager autofill
-    // extension did it we must not leave a real student staring at a dead
-    // button, so show the same confirmation rather than silently stopping.
-    if ($('#company_ref').value.trim() !== '') {
-      showSuccess(valueOf('name'));
-      return;
-    }
-
     if (Date.now() - openedAt < MIN_FILL_MS) {
       setBanner('Just a moment', document.createTextNode('Please review your answers, then send again.'));
       return;
@@ -1701,7 +1682,10 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       source: valueOf('source'),
       notes: valueOf('notes'),
       consent: true,
-      company_ref: ''
+      // The honeypot value is sent as-is rather than acted on here. A password
+      // manager can fill it, and dropping the submission client-side would lose
+      // a real student while showing them a confirmation. The server decides.
+      company_ref: valueOf('company_ref')
     };
 
     if (!CONFIG.endpoint) {
@@ -1750,6 +1734,13 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
         // The confirmation is rendered here, after the fetch has settled, so a
         // DOM error while showing it can never be reported as a send failure.
         if (delivered) showSuccess(payload.name);
+      })
+      // Without this, a throw inside the .catch above would skip the reset and
+      // leave the button stuck on "Sending" with inFlight never cleared.
+      .catch(function () {
+        clearTimeout(timeout);
+        inFlight = false;
+        setLoading(false);
       });
   });
 
