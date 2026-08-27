@@ -1,6 +1,6 @@
 # Setup
 
-Two pieces: the page (`index.html`) and the relay (`worker/`). The relay exists so your bot
+Two pieces: the page (`public/index.html`) and the relay (`worker/`). The relay exists so your bot
 token never appears in the page source.
 
 Total time: about 15 minutes. Everything used here is free.
@@ -60,7 +60,7 @@ wrangler secret put CHAT_ID       # paste the chat id from step 2
 Edit `wrangler.toml` and set `ALLOWED_ORIGIN` to wherever the page will live, for example:
 
 ```toml
-ALLOWED_ORIGIN = "https://ielts-course.pages.dev,http://localhost:8000"
+ALLOWED_ORIGIN = "https://challenge-register.pages.dev"
 ```
 
 Deploy:
@@ -74,7 +74,7 @@ Copy the URL it prints, something like
 
 ## 4. Connect the page
 
-Open `index.html`, find the `CONFIG` block near the top of the `<script>`, and set:
+Open `public/index.html`, find the `CONFIG` block near the top of the `<script>`, and set:
 
 ```js
 endpoint: 'https://course-registration.your-name.workers.dev',
@@ -85,21 +85,29 @@ facts panel, the "what you study" entries, the registration form's course/level/
 options and the two difficulty checklists, and your contact details. That block is the
 only place with content in it. Nothing else in the file needs editing.
 
-If you change the courses, levels, formats, or either difficulty list, you must make the
-same change to the matching arrays at the top of `worker/worker.js`. The Worker rejects
-any value it does not recognise, so they have to stay in step.
+If you change `courses`, `levels`, `formats`, the `#source` options, or either difficulty
+list, make the same change to the matching arrays at the top of `worker/worker.js`. They
+fail differently, which matters when debugging:
+
+| Field | If the Worker does not recognise the value |
+|---|---|
+| course, level, format | Rejected with a 400 — the student sees an error |
+| source, reading, listening | Silently dropped — the field just vanishes from the message |
+
+So a renamed difficulty produces no error anywhere; it simply stops appearing. If a field
+you expect is missing from a registration, check this first.
 
 ## 5. Test it
 
-Serve the page over HTTP rather than opening the file directly, so the browser sends a
-proper `Origin` header:
+Test against the deployed page, <https://challenge-register.pages.dev>, not a local
+server. `ALLOWED_ORIGIN` lists only the live origin, so a form served from `localhost`
+will be refused.
 
-```bash
-python3 -m http.server 8000
-```
+To test locally instead, temporarily add `,http://localhost:8000` to `ALLOWED_ORIGIN`,
+`wrangler deploy`, run `python3 -m http.server 8000`, and remove it again when you are
+finished.
 
-Open <http://localhost:8000>, fill the form, submit. The message should arrive in Telegram
-within a second or two.
+Fill the form and submit. The message should arrive in Telegram within a second or two.
 
 If it does not:
 
@@ -123,7 +131,7 @@ wrangler tail
 
 ## 6. Publish the page
 
-Any static host works, and `index.html` has no dependencies.
+Any static host works, and `public/index.html` has no dependencies.
 
 - **Cloudflare Pages** — the page lives in `public/`, which is why the deploy points there
   rather than at the project root. Deploying the root would publish `worker/` and this
@@ -137,7 +145,11 @@ Any static host works, and `index.html` has no dependencies.
 - **GitHub Pages** — push the folder, enable Pages in repository settings.
 
 After publishing, put the real site URL in `ALLOWED_ORIGIN` and redeploy the Worker.
-Remove `http://localhost:8000` from that list once you are finished testing.
+
+`ALLOWED_ORIGIN` is an exact-match list, so **Cloudflare Pages preview deployments will
+not work**: each one gets its own `<hash>.challenge-register.pages.dev` hostname. Only the
+production URL is allowed. A preview build's form will fail with a console CORS error and
+nothing visible on the page. Add any custom domain to the list explicitly too.
 
 ---
 
@@ -146,14 +158,27 @@ Remove `http://localhost:8000` from that list once you are finished testing.
 - **Telegram is your only record.** Nothing is stored in a database. Pin the channel or
   use Telegram search to find past registrations. If you later want a spreadsheet, the
   Worker can write each row to KV or a Google Sheet without any change to `index.html`.
-- **Rate limit** is 5 submissions per IP per hour, in `worker.js` as `RATE_LIMIT_MAX`.
-  A shared office or university network will hit that faster than you expect; raise it if
-  legitimate students get blocked. It is approximate: KV is eventually consistent, so a
-  fast burst can slip a few extra through. It stops casual abuse, not a determined attacker.
+- **Rate limit** is 5 submissions per IP per clock hour, in `worker.js` as
+  `RATE_LIMIT_MAX`. A shared office, school or university network shares one IP, so a class
+  registering together will hit it; raise it before any session like that.
+  It is deliberately approximate. KV has no atomic increment, so the count is read and
+  written a few milliseconds apart and a simultaneous burst can exceed the limit. It stops
+  repeat submissions and casual abuse, not a determined attacker. If you ever need a real
+  limit, Cloudflare's native rate-limiting binding is atomic and costs no KV writes.
+- **A failed delivery still costs the student one attempt.** Refunding it was tried and
+  removed: decrementing the same counter let anyone who could force a failure reset their
+  own limit indefinitely.
+- **A 502 loses that registration.** Nothing is queued. The page keeps the student's
+  answers and offers your Telegram link, so someone still at the keyboard can retry, but
+  someone who closed the tab is gone.
+- **Messages headed `⚠️ New registration (bot trap tripped)`** mean the hidden anti-bot
+  field was filled. Usually a bot, occasionally a password manager on a real student's
+  browser, so check rather than delete.
 - **Free tier limits:** 100,000 Worker requests a day, 100,000 KV reads a day, and
-  **1,000 KV writes a day**. That write limit is the real ceiling here, since every
-  accepted registration is one write. If it is ever exceeded the Worker refuses new
-  submissions rather than dropping the rate limit, so you would see 429s, not a flood.
+  **1,000 KV writes a day**. Writes are the real ceiling, since every submission that
+  passes validation is one write. If either quota is exhausted the Worker fails closed:
+  students see "We cannot accept registrations right now" and are pointed at Telegram,
+  rather than the limiter silently switching off.
 - **If you remove the `[[kv_namespaces]]` block** to force a deploy through, rate limiting
   is disabled entirely and `wrangler tail` will say so on every request.
 - **`ALLOWED_ORIGIN` stops other websites, not determined abuse.** Browsers enforce it, but

@@ -128,9 +128,9 @@ export default {
 
     const sent = await sendToTelegram(env, data, request, suspicious);
     if (!sent) {
-      // The attempt never reached Telegram, so it should not cost the student
-      // one of their five. Otherwise an outage locks them out for an hour.
-      await refundRateLimit(env, ip);
+      // This does cost the student one of their attempts. Refunding it was
+      // tried and removed: decrementing the same counter let anyone who could
+      // force a failure reset their own limit indefinitely.
       // Never surface Telegram's response; its error text can echo the token.
       return json({ ok: false, error: 'Could not deliver your registration. Please try again.' }, 502, cors);
     }
@@ -271,7 +271,21 @@ function pickKnown(value, allowed) {
   return [...seen];
 }
 
-/** @returns {{blocked: boolean, reason?: 'limit'|'unavailable'}} */
+/**
+ * Reserve one slot for this IP, before the Telegram call.
+ *
+ * The read and the write are not atomic, and KV is eventually consistent, so
+ * a simultaneous burst can slip past. Keeping the two operations adjacent
+ * holds that window to milliseconds; doing the write after the Telegram
+ * round-trip instead would stretch it to hundreds and make it trivial to win.
+ * A determined attacker is not stopped by this — see the Turnstile note in
+ * SETUP.md — but ordinary repeat submissions are.
+ *
+ * A fixed window in the key, rather than a rolling TTL, so five submissions
+ * spread over three hours do not keep extending a one-hour block.
+ *
+ * @returns {{blocked: boolean, reason?: 'limit'|'unavailable'}}
+ */
 async function hitRateLimit(env, ip) {
   if (!env.RATELIMIT) {
     // No KV bound. Local dev, or someone removed the binding to get a deploy
@@ -279,34 +293,23 @@ async function hitRateLimit(env, ip) {
     console.warn('RATELIMIT KV is not bound: rate limiting is disabled');
     return { blocked: false };
   }
-  const key = `rl:${ip}`;
+  const window = Math.floor(Date.now() / (RATE_LIMIT_WINDOW_SECONDS * 1000));
+  const key = `rl:${ip}:${window}`;
   try {
-    const current = Number((await env.RATELIMIT.get(key)) || 0);
+    // `|| 0` also guards against a non-numeric value poisoning the counter:
+    // NaN >= MAX is false, and String(NaN + 1) would write "NaN" back.
+    const current = Number(await env.RATELIMIT.get(key)) || 0;
     if (current >= RATE_LIMIT_MAX) return { blocked: true, reason: 'limit' };
     await env.RATELIMIT.put(key, String(current + 1), {
-      expirationTtl: RATE_LIMIT_WINDOW_SECONDS,
+      expirationTtl: RATE_LIMIT_WINDOW_SECONDS * 2,
     });
     return { blocked: false };
   } catch (error) {
-    // Most likely the KV daily write quota. Fail closed: an endpoint that
-    // relays to a chat should go quiet rather than become an open relay.
-    console.error('RATELIMIT KV error, failing closed:', error && error.message);
+    // Reads and writes have separate daily quotas, and writes are the smaller
+    // one. Either failing means we can no longer count, so go quiet rather
+    // than become an uncounted open relay.
+    console.error('RATELIMIT KV failed, failing closed:', error && error.message);
     return { blocked: true, reason: 'unavailable' };
-  }
-}
-
-/** Give back the slot consumed by an attempt that never reached Telegram. */
-async function refundRateLimit(env, ip) {
-  if (!env.RATELIMIT) return;
-  const key = `rl:${ip}`;
-  try {
-    const current = Number((await env.RATELIMIT.get(key)) || 0);
-    if (current <= 0) return;
-    await env.RATELIMIT.put(key, String(current - 1), {
-      expirationTtl: RATE_LIMIT_WINDOW_SECONDS,
-    });
-  } catch (error) {
-    console.error('RATELIMIT refund failed:', error && error.message);
   }
 }
 
@@ -321,6 +324,14 @@ function esc(value) {
 
 /** Telegram rejects anything longer than this, so stay under it. */
 const MAX_MESSAGE_CHARS = 4000;
+
+/** Cut escaped text to `limit`, never mid-entity. */
+function clip(escaped, limit) {
+  if (escaped.length <= limit) return escaped;
+  // Back off to before any partially-included &...; sequence.
+  const cut = escaped.slice(0, limit).replace(/&[a-z0-9#]*$/i, '');
+  return cut + '…';
+}
 
 function buildMessage(data, request, suspicious) {
   const country = request.cf && request.cf.country ? request.cf.country : null;
@@ -356,7 +367,12 @@ function buildMessage(data, request, suspicious) {
   }
 
   if (data.source) lines.push('', `<b>Heard via:</b> ${esc(data.source)}`);
-  if (data.notes) lines.push('', `<b>Notes:</b>`, esc(data.notes));
+  if (data.notes) {
+    // Cap the one free-text field here rather than trimming the assembled
+    // message. Notes is a single line, so a line-boundary trim later would
+    // drop the whole block instead of just the overflow.
+    lines.push('', `<b>Notes:</b>`, clip(esc(data.notes), 1800));
+  }
   if (country) lines.push('', `<i>${esc(country)}</i>`);
 
   // Escaping expands quotes and ampersands fivefold, so a long-but-valid
@@ -388,7 +404,9 @@ async function sendToTelegram(env, data, request, suspicious) {
     const result = await response.json().catch(() => null);
     if (!response.ok || !result || !result.ok) {
       // Log the description only. Never log the url, which contains the token.
-      console.error('Telegram rejected the message:', result && result.description);
+      // Status included so `wrangler tail` shows something useful when the
+      // response is not JSON and `result` is null.
+      console.error('Telegram rejected:', response.status, result && result.description);
       return false;
     }
     return true;

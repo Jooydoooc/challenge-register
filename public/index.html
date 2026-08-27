@@ -151,7 +151,8 @@ img[hidden] { display: none; }
   :focus-visible { outline: 3px solid Highlight; }
 }
 
-::selection { background: var(--accent); color: var(--accent-ink); }
+/* Selected text is text: it needs the fill step, not the decorative blue. */
+::selection { background: var(--primary-fill); color: var(--primary-ink); }
 
 .wrap {
   width: 100%;
@@ -165,7 +166,9 @@ img[hidden] { display: none; }
   left: 0.5rem;
   top: -4rem;
   z-index: var(--z-toast);
-  background: var(--primary);
+  /* --primary is 2.94:1 against white text; this is real text, so it needs
+     the fill step. */
+  background: var(--primary-fill);
   color: var(--primary-ink);
   padding: 0.75rem 1.1rem;
   border-radius: var(--radius);
@@ -426,8 +429,10 @@ img[hidden] { display: none; }
   transition: background-color 0.3s var(--ease);
 }
 .stepper li[data-state="current"] { color: var(--ink); font-weight: 650; }
+/* The bars carry progress, so they clear 3:1 against the card rather than
+   sitting at the decorative blue's 2.94:1. */
 .stepper li[data-state="current"]::before,
-.stepper li[data-state="done"]::before { background: var(--primary); }
+.stepper li[data-state="done"]::before { background: var(--primary-text); }
 .stepper .num { font-variant-numeric: tabular-nums; }
 .stepper .label { display: none; }
 @media (min-width: 34rem) {
@@ -642,8 +647,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .done .tick {
   width: 3rem; height: 3rem;
   border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--primary-fill);
+  color: var(--primary-ink);
   display: grid;
   place-items: center;
   font-size: 1.5rem;

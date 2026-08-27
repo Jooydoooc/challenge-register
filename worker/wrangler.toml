@@ -7,8 +7,10 @@ enabled = true
 
 [vars]
 # Comma-separated list of origins allowed to POST here: exact scheme, host and
-# port, no trailing slash. Must match the Pages project name below.
-# Drop the localhost entry once you have finished testing.
+# port, no trailing slash, exact match only.
+# This must equal the Pages URL the form is served from. Preview deployments
+# get their own hostname and will NOT match, so their forms will fail.
+# Add http://localhost:8000 temporarily if you need to test locally.
 ALLOWED_ORIGIN = "https://challenge-register.pages.dev"
 
 # Created with:  wrangler kv namespace create RATELIMIT
