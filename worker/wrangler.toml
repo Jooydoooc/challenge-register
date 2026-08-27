@@ -9,7 +9,7 @@ enabled = true
 # Comma-separated list of origins allowed to POST here: exact scheme, host and
 # port, no trailing slash. Must match the Pages project name below.
 # Drop the localhost entry once you have finished testing.
-ALLOWED_ORIGIN = "https://challenge-register.pages.dev,http://localhost:8000"
+ALLOWED_ORIGIN = "https://challenge-register.pages.dev"
 
 # Created with:  wrangler kv namespace create RATELIMIT
 # Paste the returned id below. `wrangler deploy` fails with an invalid id, so do
