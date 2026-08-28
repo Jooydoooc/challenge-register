@@ -246,3 +246,27 @@ in the sheet itself.
   and verify its token in the Worker; that is the real fix, and nothing else here changes.
 - **Rotating the token:** send `/revoke` to BotFather, then `wrangler secret put BOT_TOKEN`
   with the new one. The page needs no change, which is the point of the relay.
+
+---
+
+## 7. Spreadsheet backup (optional)
+
+Telegram is the only record unless you turn this on. A deleted message is a
+lost registration; a spreadsheet row is not.
+
+`worker/sheet-webhook.gs` is a Google Apps Script. Its own header comment has
+the step-by-step: create a Sheet, paste the script, set a `SHEET_TOKEN` script
+property, deploy it as a web app, then give the Worker the two values:
+
+```bash
+wrangler secret put SHEET_WEBHOOK_URL     # the /exec URL Apps Script prints
+wrangler secret put SHEET_WEBHOOK_TOKEN   # the same value as SHEET_TOKEN
+```
+
+Set both or neither: with either missing the feature stays off and nothing
+changes. The write happens after the student has already been told their
+registration succeeded, so a broken or slow script can never make a good
+signup look failed. Failures appear in `wrangler tail` only.
+
+If you change the columns, change `buildRow()` in `worker.js` and `HEADERS` in
+the script together, or rows will land under the wrong headings.
