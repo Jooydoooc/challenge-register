@@ -50,7 +50,7 @@ var HEADERS = [
   'Heard via',
   'Notes',
   'Country',
-  'Flag',
+  'Flag',   // 'BOT TRAP' or 'NOT SENT TO TELEGRAM' - both need a look
 ];
 
 function doPost(e) {
@@ -79,27 +79,44 @@ function doPost(e) {
     if (!Array.isArray(body.row)) {
       return reply({ ok: false, error: 'row must be an array' });
     }
-    // Bound the write: the Worker sends a fixed 14-column row.
-    if (body.row.length > HEADERS.length) {
-      return reply({ ok: false, error: 'row too long' });
+    // Exact length, not "at most". Padding a short row would silently slide
+    // every value after a removed column under the wrong heading, which
+    // produces a spreadsheet that looks right and is wrong. Better to refuse
+    // and have it show up in `wrangler tail`.
+    if (body.row.length !== HEADERS.length) {
+      return reply({
+        ok: false,
+        error: 'row has ' + body.row.length + ' columns, expected ' + HEADERS.length +
+               '. buildRow() in worker.js and HEADERS here are out of sync.',
+      });
     }
 
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-
-    // Header row, written only once.
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(HEADERS);
-      sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold');
-      sheet.setFrozenRows(1);
+    // Apps Script runs up to 30 executions at once, and both the header check
+    // and the append are read-then-write. Two students submitting in the same
+    // second could otherwise duplicate the header or lose a row. The lock is
+    // the documented remedy.
+    var lock = LockService.getScriptLock();
+    try {
+      lock.waitLock(20000);
+    } catch (err) {
+      return reply({ ok: false, error: 'Busy: could not get the sheet lock' });
     }
 
-    // Pad so short rows still line up under the right headers.
-    var row = body.row.slice();
-    while (row.length < HEADERS.length) row.push('');
+    try {
+      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
 
-    // appendRow is atomic per call, so concurrent registrations cannot
-    // overwrite each other the way a getLastRow()+setValues() pair would.
-    sheet.appendRow(row);
+      // Header row, written only once.
+      if (sheet.getLastRow() === 0) {
+        sheet.appendRow(HEADERS);
+        sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold');
+        sheet.setFrozenRows(1);
+      }
+
+      sheet.appendRow(body.row);
+      SpreadsheetApp.flush(); // commit before releasing the lock
+    } finally {
+      lock.releaseLock();
+    }
 
     return reply({ ok: true });
   } catch (err) {

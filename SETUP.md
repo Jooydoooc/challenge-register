@@ -81,17 +81,19 @@ endpoint: 'https://course-registration.your-name.workers.dev',
 ```
 
 Everything else on the page comes from the same block: course name, tagline, the hero
-facts panel, the "what you study" entries, the registration form's course/level/format
-options and the two difficulty checklists, and your contact details. That block is the
-only place with content in it. Nothing else in the file needs editing.
+facts panel, the "what you study" entries, the form's course and level options, the two
+difficulty checklists, and your contact details.
 
-If you change `courses`, `levels`, `formats`, the `#source` options, or either difficulty
-list, make the same change to the matching arrays at the top of `worker/worker.js`. They
+One exception: the **"How did you hear about us?"** options are written directly in the
+HTML, not in CONFIG. Search for `id="source"` to edit them.
+
+If you change `courses`, `levels`, the `#source` options, or either difficulty list, make
+the same change to the matching arrays at the top of `worker/worker.js`. They
 fail differently, which matters when debugging:
 
 | Field | If the Worker does not recognise the value |
 |---|---|
-| course, level, format | Rejected with a 400 — the student sees an error |
+| course, level | Rejected with a 400 — the student sees an error |
 | source, reading, listening | Silently dropped — the field just vanishes from the message |
 
 So a renamed difficulty produces no error anywhere; it simply stops appearing. If a field
@@ -162,11 +164,14 @@ changes either way.
    registration. **The first tab is the one used**, so do not reorder the tabs later.
 2. In that sheet, open **Extensions → Apps Script**. Delete the placeholder `myFunction`
    and paste the whole of `worker/sheet-webhook.gs`.
-3. Generate a shared secret and paste it into the `SHEET_TOKEN` line at the top of the
-   script:
+3. Generate a shared secret:
    ```bash
    openssl rand -hex 24
    ```
+   Store it as a **Script Property**, not in the file — anyone you share the Sheet with
+   can read the script. In the Apps Script editor: **Project Settings** (the gear icon)
+   → **Script Properties** → **Add script property**, with the name `SHEET_TOKEN` and
+   your secret as the value.
 4. **Deploy → New deployment**, gear icon → **Web app**, then:
    - *Execute as*: **Me**
    - *Who has access*: **Anyone**
@@ -188,7 +193,9 @@ Submit the form once. The row should appear within a couple of seconds.
 
 If it does not, run `wrangler tail` and submit again:
 
-- **`Sheet webhook refused: Bad token`** — `SHEET_TOKEN` in the script and
+- **`Sheet webhook refused: SHEET_TOKEN script property is not set`** — you skipped or
+  mistyped step 3. The script reads it from Script Properties, not from the file.
+- **`Sheet webhook refused: Bad token`** — the `SHEET_TOKEN` script property and
   `SHEET_WEBHOOK_TOKEN` on the Worker are not identical. Watch for a trailing space or
   newline when pasting.
 - **`Sheet webhook returned 401` or `403`** — the deployment is not set to *Anyone*.
@@ -200,8 +207,14 @@ If it does not, run `wrangler tail` and submit again:
   you would then have to put back into `SHEET_WEBHOOK_URL`.
 
 Telegram remains the record of truth. A sheet write that fails is logged and dropped —
-the student still gets a success, because the registration did arrive in Telegram. So a
-missing row is possible; a missing Telegram message is not.
+the student still gets a success, because the registration did arrive in Telegram.
+
+The reverse is also handled. If Telegram refuses the message — most likely because a
+burst of signups hit its ~20-messages-per-minute limit for one chat — the Worker retries
+once, and if that fails it **still writes the sheet row**, flagged `NOT SENT TO TELEGRAM`
+in the last column. The student is told "We have your details but could not confirm them",
+so nobody is told they succeeded when they did not, and you can still find them. Filter
+that column before a busy intake.
 
 To add a column later, change it in three places or the rows go out of alignment:
 `HEADERS` in the script, `buildRow()` in `worker/worker.js`, and the existing header row
@@ -246,27 +259,3 @@ in the sheet itself.
   and verify its token in the Worker; that is the real fix, and nothing else here changes.
 - **Rotating the token:** send `/revoke` to BotFather, then `wrangler secret put BOT_TOKEN`
   with the new one. The page needs no change, which is the point of the relay.
-
----
-
-## 7. Spreadsheet backup (optional)
-
-Telegram is the only record unless you turn this on. A deleted message is a
-lost registration; a spreadsheet row is not.
-
-`worker/sheet-webhook.gs` is a Google Apps Script. Its own header comment has
-the step-by-step: create a Sheet, paste the script, set a `SHEET_TOKEN` script
-property, deploy it as a web app, then give the Worker the two values:
-
-```bash
-wrangler secret put SHEET_WEBHOOK_URL     # the /exec URL Apps Script prints
-wrangler secret put SHEET_WEBHOOK_TOKEN   # the same value as SHEET_TOKEN
-```
-
-Set both or neither: with either missing the feature stays off and nothing
-changes. The write happens after the student has already been told their
-registration succeeded, so a broken or slow script can never make a good
-signup look failed. Failures appear in `wrangler tail` only.
-
-If you change the columns, change `buildRow()` in `worker.js` and `HEADERS` in
-the script together, or rows will land under the wrong headings.

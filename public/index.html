@@ -1418,13 +1418,22 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   // Telegram username tidy-up: accept a pasted link or a bare name.
   $('#telegram').addEventListener('blur', function () {
     var v = this.value.trim()
+      .replace(/^@+/, '')                      // before, for "@t.me/name"
       .replace(/^https?:\/\//i, '')
       .replace(/^(www\.)?t(elegram)?\.me\//i, '')
-      .replace(/^@+/, '')
+      .replace(/^s\//i, '')                    // t.me/s/name preview links
+      .replace(/[?#].*$/, '')                  // ?start=... tracking suffixes
+      .replace(/^@+/, '')                      // and again, after stripping
       .replace(/\/+$/, '');
     this.value = v ? '@' + v : '';
     validateField('telegram');
   });
+
+  // Only these are Uzbek mobile prefixes. Without this check any bare 9-digit
+  // number was rewritten as +998, so a Spanish or Polish number became a
+  // plausible-looking Uzbek one the owner would then try to call.
+  var UZ_MOBILE_PREFIXES = ['33','55','61','62','65','66','67','69','70','71',
+    '72','73','74','75','77','78','88','90','91','93','94','95','97','98','99'];
 
   // Phone: format a full Uzbek number, otherwise leave what was typed.
   $('#phone').addEventListener('blur', function () {
@@ -1432,7 +1441,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     if (/^998\d{9}$/.test(digits)) {
       this.value = '+998 ' + digits.slice(3, 5) + ' ' + digits.slice(5, 8) +
                    ' ' + digits.slice(8, 10) + ' ' + digits.slice(10);
-    } else if (/^\d{9}$/.test(digits)) {
+    } else if (/^\d{9}$/.test(digits) && !/[+]|^00/.test(this.value.trim()) &&
+               UZ_MOBILE_PREFIXES.indexOf(digits.slice(0, 2)) !== -1) {
       this.value = '+998 ' + digits.slice(0, 2) + ' ' + digits.slice(2, 5) +
                    ' ' + digits.slice(5, 7) + ' ' + digits.slice(7);
     }
@@ -1467,6 +1477,12 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
           var values = checkedValues(field);
           if (values.length) draft[field] = values;
         });
+        // An empty draft is worse than none: it would trigger the "we filled
+        // in what you started earlier" notice over a blank form.
+        if (!Object.keys(draft).length) {
+          localStorage.removeItem(DRAFT_KEY);
+          return;
+        }
         draft.savedAt = Date.now();
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
       } catch (e) { /* private mode or full quota: not worth interrupting anyone */ }
@@ -1483,7 +1499,10 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     // Drafts expire. Without this, the next person on a shared computer, at a
     // learning centre or an internet cafe, opens the page pre-filled with
     // someone else's name, phone and Telegram handle, and can submit it.
-    if (!draft.savedAt || Date.now() - draft.savedAt > DRAFT_MAX_AGE_MS) {
+    var age = Date.now() - draft.savedAt;
+    if (typeof draft.savedAt !== 'number' || !(age >= 0 && age <= DRAFT_MAX_AGE_MS)) {
+      // Covers a missing, corrupted, or future-dated timestamp. Comparing with
+      // > alone would let NaN through, since every NaN comparison is false.
       clearDraft();
       return;
     }
@@ -1521,6 +1540,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   }
 
   function clearDraft() {
+    // Cancel any pending save first, or it fires afterwards and resurrects the
+    // draft we just deleted — including after a successful registration.
+    clearTimeout(saveTimer);
     try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* nothing to do */ }
   }
 
@@ -1676,6 +1698,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     if (tag === 'TEXTAREA' || tag === 'BUTTON') return;
     if (currentStep === TOTAL_STEPS) return;
     event.preventDefault();
+    // A synthetic click does not move focus, so the blur handlers that
+    // normalise the phone and Telegram fields would never run. Blur first.
+    if (typeof event.target.blur === 'function') event.target.blur();
     var next = $('#step-' + currentStep + ' [data-next]');
     if (next) next.click();
   });
