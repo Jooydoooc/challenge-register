@@ -7,6 +7,9 @@
  * Required secrets (wrangler secret put ...):
  *   BOT_TOKEN  - from @BotFather
  *   CHAT_ID    - your user id, group id, or @channelname
+ * Optional secrets (set both, or neither, to also append rows to a Sheet):
+ *   SHEET_WEBHOOK_URL   - the /exec URL of the Apps Script in worker/sheet-webhook.gs
+ *   SHEET_WEBHOOK_TOKEN - shared secret, must match SHEET_TOKEN in that script
  * Required var (wrangler.toml):
  *   ALLOWED_ORIGIN - comma-separated list of origins allowed to post
  * Required binding:
@@ -25,7 +28,6 @@ const FIELDS = [
   { key: 'email', label: 'Email', required: false, max: 120 },
   { key: 'course', label: 'Course', required: true, max: 40 },
   { key: 'level', label: 'Level', required: true, max: 40 },
-  { key: 'format', label: 'Format', required: true, max: 20 },
   { key: 'timeline', label: 'Days to goal', required: false, max: 12 },
   { key: 'source', label: 'Heard via', required: false, max: 40 },
   { key: 'notes', label: 'Notes', required: false, max: 500 },
@@ -36,9 +38,11 @@ const FIELDS = [
  * can send anything, so these are re-checked here. Keep in step with the
  * CONFIG block in public/index.html.
  */
-const COURSES = ['Marathon', 'Offline classes', 'Challenge'];
+// 'Challenge' is the old label for DISCIPLINE. Both are accepted so that a
+// page deploy and a Worker deploy can happen in either order without every
+// registration failing in between. Drop 'Challenge' once the page is live.
+const COURSES = ['Marathon', 'Offline classes', 'DISCIPLINE', 'Challenge'];
 const LEVELS = ['Beginner', 'Elementary', 'Pre-IELTS', 'IELTS Introduction', 'IELTS Graduation'];
-const FORMATS = ['Offline', 'Online'];
 const SOURCES = [
   'Instagram', 'Telegram channel', 'A friend or former student',
   'Google search', 'YouTube', 'Other',
@@ -54,7 +58,7 @@ const LISTENING_DIFFICULTIES = [
 ];
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin') || '';
     const cors = corsHeaders(origin, env);
 
@@ -134,6 +138,13 @@ export default {
       // Never surface Telegram's response; its error text can echo the token.
       return json({ ok: false, error: 'Could not deliver your registration. Please try again.' }, 502, cors);
     }
+
+    // The spreadsheet is a convenience copy, not the record of truth: Telegram
+    // already has this registration. So it runs after the response is decided
+    // and its failure never reaches the student — a slow or broken Apps Script
+    // must not make a successful signup look broken.
+    const sheetWrite = appendToSheet(env, data, request, suspicious);
+    if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(sheetWrite);
 
     return json({ ok: true }, 200, cors);
   },
@@ -239,9 +250,6 @@ function validate(payload) {
   if (data.level && !LEVELS.includes(data.level)) {
     errors.push('Level is not valid');
   }
-  if (data.format && !FORMATS.includes(data.format)) {
-    errors.push('Format is not valid');
-  }
   if (data.timeline && !/^\d{1,4}$/.test(data.timeline)) {
     errors.push('Days to goal must be a number');
   }
@@ -286,6 +294,17 @@ function pickKnown(value, allowed) {
  *
  * @returns {{blocked: boolean, reason?: 'limit'|'unavailable'}}
  */
+/**
+ * An IPv6 client typically controls an entire /64, which is 18 quintillion
+ * addresses. Counting the full address would let anyone on IPv6 take five
+ * registrations per address and bypass the limit completely, so count the /64.
+ * IPv4 addresses are used whole.
+ */
+function rateLimitScope(ip) {
+  if (!ip.includes(':')) return ip;
+  return ip.split(':').slice(0, 4).join(':') + '::/64';
+}
+
 async function hitRateLimit(env, ip) {
   if (!env.RATELIMIT) {
     // No KV bound. Local dev, or someone removed the binding to get a deploy
@@ -294,7 +313,7 @@ async function hitRateLimit(env, ip) {
     return { blocked: false };
   }
   const window = Math.floor(Date.now() / (RATE_LIMIT_WINDOW_SECONDS * 1000));
-  const key = `rl:${ip}:${window}`;
+  const key = `rl:${rateLimitScope(ip)}:${window}`;
   try {
     // `|| 0` also guards against a non-numeric value poisoning the counter:
     // NaN >= MAX is false, and String(NaN + 1) would write "NaN" back.
@@ -353,7 +372,7 @@ function buildMessage(data, request, suspicious) {
 
   lines.push(
     '',
-    `<b>Course:</b> ${esc(data.course)} · ${esc(data.format)}`,
+    `<b>Course:</b> ${esc(data.course)}`,
     `<b>Level:</b> ${esc(data.level)}`
   );
 
@@ -413,5 +432,73 @@ async function sendToTelegram(env, data, request, suspicious) {
   } catch (error) {
     console.error('Telegram request failed:', error && error.name);
     return false;
+  }
+}
+
+/**
+ * One spreadsheet row per registration. Order is fixed and must match the
+ * HEADERS array in worker/sheet-webhook.gs — the script writes the header row
+ * once, from its own copy, and appends by position after that. Adding a column
+ * means adding it here, in that script, and in the existing sheet by hand.
+ *
+ * Multi-value fields are joined rather than split across columns so the row
+ * shape never changes with the answers.
+ */
+function buildRow(data, request, suspicious) {
+  return [
+    new Date().toISOString(),
+    data.name,
+    // Leading ' so Sheets keeps "+998..." as text instead of reading the + as a
+    // formula and showing #NAME?.
+    `'${data.phone}`,
+    '@' + data.telegram.replace(/^@/, ''),
+    data.email || '',
+    data.course,
+    data.level,
+    data.timeline || '',
+    data.reading.join(', '),
+    data.listening.join(', '),
+    data.source || '',
+    data.notes || '',
+    (request.cf && request.cf.country) || '',
+    suspicious ? 'BOT TRAP' : '',
+  ];
+}
+
+/**
+ * Append the row to the Google Sheet, if a webhook is configured.
+ *
+ * Never throws and never returns a failure the caller acts on: the spreadsheet
+ * is a copy, and Telegram already holds the registration. Problems show up in
+ * `wrangler tail` only.
+ */
+async function appendToSheet(env, data, request, suspicious) {
+  if (!env.SHEET_WEBHOOK_URL || !env.SHEET_WEBHOOK_TOKEN) return;
+
+  try {
+    // Apps Script answers /exec with a 302 to script.googleusercontent.com and
+    // the redirected request is a bodyless GET. That is fine: doPost has
+    // already run by the time the redirect is issued, so the row is written
+    // even though the body does not survive the hop.
+    const response = await fetch(env.SHEET_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: env.SHEET_WEBHOOK_TOKEN,
+        row: buildRow(data, request, suspicious),
+      }),
+    });
+    if (!response.ok) {
+      console.error('Sheet webhook returned', response.status);
+      return;
+    }
+    // A rejected token still comes back 200 with a body saying why, because
+    // Apps Script cannot set a status code. Read it so failures are visible.
+    const result = await response.json().catch(() => null);
+    if (!result || !result.ok) {
+      console.error('Sheet webhook refused:', result && result.error);
+    }
+  } catch (error) {
+    console.error('Sheet webhook failed:', error && error.name);
   }
 }

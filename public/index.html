@@ -434,7 +434,11 @@ img[hidden] { display: none; }
 .stepper li[data-state="current"]::before,
 .stepper li[data-state="done"]::before { background: var(--primary-text); }
 .stepper .num { font-variant-numeric: tabular-nums; }
+/* Below 34rem only the current step is named, so phones still get words
+   rather than three bare numerals. */
 .stepper .label { display: none; }
+.stepper li[data-state="current"] .label { display: inline; }
+.stepper li[data-state="current"] .num::after { content: ". "; }
 @media (min-width: 34rem) {
   .stepper .label { display: inline; }
   .stepper .num::after { content: ". "; }
@@ -444,6 +448,31 @@ img[hidden] { display: none; }
 /* Focused only so screen readers announce the new step. It is not an
    interactive element, so a ring around the whole panel is just noise. */
 .step:focus, .step:focus-visible { outline: none; }
+
+/* Shown when a saved draft repopulated the form. */
+.restored {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--primary-soft);
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+}
+.restored[hidden] { display: none; }
+.restored button {
+  font: inherit;
+  font-weight: 650;
+  color: var(--primary-text);
+  background: none;
+  border: 0;
+  padding: 0.35rem 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
 .step-head { margin-bottom: 1.5rem; }
 .step-head h3 {
@@ -515,6 +544,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   border-color: var(--primary);
 }
 [aria-invalid="true"] { border-color: var(--danger); }
+/* The radiogroup is a bare div with no border, so colour its options instead,
+   otherwise a missed required choice looks completely unchanged. */
+[role="radiogroup"][aria-invalid="true"] .choice { border-color: var(--danger); }
 [aria-invalid="true"]:focus-visible { outline-color: var(--danger); border-color: var(--danger); }
 
 .error {
@@ -746,7 +778,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     <div class="wrap">
       <div class="section-head">
         <h2>Register</h2>
-        <p>Fill this in and we will message you on Telegram within a day to confirm your place and send payment details. No payment is taken here.</p>
+        <p>Fill this in and we will message you on Telegram within two to three days to confirm your place and send payment details. No payment is taken here.</p>
       </div>
 
       <div class="form-shell">
@@ -783,6 +815,14 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
               <h3 id="step-1-title">About you</h3>
               <p>So we can confirm your place.</p>
             </div>
+
+            <!-- Shown only when a saved draft was restored, so nobody submits
+                 someone else's details from a shared computer unknowingly. -->
+            <p class="restored" id="restoredNotice" hidden>
+              We filled in what you started earlier.
+              <button type="button" id="startFresh">Start fresh</button>
+            </p>
+
             <div class="field-grid">
 
             <div class="field">
@@ -848,15 +888,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
               </select>
               <span class="hint" id="level-hint">Not sure? Pick the closest and we will check with you.</span>
               <span class="error" aria-live="polite" id="level-error"></span>
-            </div>
-
-            <div class="field span-2">
-              <fieldset>
-                <legend class="legend" id="format-legend">Offline or online? <span class="req" aria-hidden="true">*</span></legend>
-                <div class="choices" id="formatChoices" role="radiogroup"
-                     aria-labelledby="format-legend" aria-describedby="format-error"><!-- rendered from CONFIG --></div>
-                <span class="error" aria-live="polite" id="format-error" style="margin-top:0.5rem"></span>
-              </fieldset>
             </div>
 
             <div class="field">
@@ -957,8 +988,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
           <p id="doneBody">We have your registration and will message you on Telegram to confirm your place.</p>
           <ol>
             <li>Check that your Telegram account can receive messages from people who are not in your contacts.</li>
-            <li>We reply within one working day with payment details and the group link.</li>
-            <li>Your place is held for 48 hours after that message.</li>
+            <li>We reply within two to three days with payment details and the group link.</li>
           </ol>
           <a class="btn" id="doneTelegram" href="#">Message us on Telegram</a>
         </div>
@@ -994,13 +1024,12 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       heroBand: 'Reading and Listening',    // highlighted words in the H1
       tagline: 'Thirty-five days on IELTS Reading and Listening: every task type, worked through until it is routine.',
       facts: [
-        { label: 'Starts',   value: '5 September' },
+        { label: 'Starts',   value: '5 September 2026' },
         { label: 'Length',   value: '35 days' },
-        { label: 'Format',   value: 'Offline or online' },
-        { label: 'Price',    value: '300 000 UZS for external students' },
-        { label: 'Internal students', value: 'Free' },
+        { label: 'Format',   value: 'Online' },
+        { label: 'Price',    value: '300 000 UZS' },
         { label: 'Places',   value: 'Unlimited' },
-        { label: 'Register by', value: '4 September, 23:59', highlight: true }
+        { label: 'Register by', value: '4 September 2026, 23:59', highlight: true }
       ]
     },
 
@@ -1010,13 +1039,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     courses: [
       { name: 'Marathon',        blurb: 'Intensive, fast-paced' },
       { name: 'Offline classes', blurb: 'In person, regular schedule' },
-      { name: 'Challenge',       blurb: 'Structured programme' }
+      { name: 'DISCIPLINE',      blurb: '35 days, Reading and Listening' }
     ],
     levels: ['Beginner', 'Elementary', 'Pre-IELTS', 'IELTS Introduction', 'IELTS Graduation'],
-    formats: [
-      { name: 'Offline', blurb: 'In person' },
-      { name: 'Online',  blurb: 'Live on Zoom' }
-    ],
     readingDifficulties: [
       'Matching Headings',
       'True/False/Not Given',
@@ -1136,7 +1161,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       input.setAttribute('aria-describedby', field + '-error');
 
       var text = el('span');
-      text.appendChild(document.createTextNode(item.name));
+      // Trailing space: without it a screen reader runs the name straight into
+      // the description, announcing "Marathonintensive, fast-paced".
+      text.appendChild(document.createTextNode(item.name + ' '));
       if (item.blurb) text.appendChild(el('span', 'choice-meta', item.blurb));
 
       label.appendChild(input);
@@ -1215,7 +1242,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     renderFacts();
     renderSyllabus();
     renderRadios('courseChoices', 'course', CONFIG.courses);
-    renderRadios('formatChoices', 'format', CONFIG.formats);
     renderChecks('readingChecks', 'reading', CONFIG.readingDifficulties);
     renderChecks('listeningChecks', 'listening', CONFIG.listeningDifficulties);
     renderLevels();
@@ -1269,6 +1295,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   var notes = $('#notes');
   var counter = $('#notes-counter');
   var DRAFT_KEY = 'courseRegDraft.v1';
+  var DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+  var restoredFromDraft = false;
   var MIN_FILL_MS = 3000;
   var openedAt = Date.now();
   var inFlight = false;
@@ -1300,7 +1328,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     },
     course: function (v) { return v ? '' : 'Please choose a course.'; },
     level: function (v) { return v ? '' : 'Please choose your level.'; },
-    format: function (v) { return v ? '' : 'Please choose offline or online.'; },
     timeline: function (v) {
       if (!v) return '';
       if (!/^\d{1,4}$/.test(v)) return 'Please enter a number of days.';
@@ -1313,7 +1340,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   };
 
   /** Fields rendered as radio groups rather than single inputs. */
-  var RADIO_FIELDS = ['course', 'format'];
+  var RADIO_FIELDS = ['course'];
   /** Fields rendered as checkbox groups; these produce arrays. */
   var CHECK_FIELDS = ['reading', 'listening'];
 
@@ -1440,6 +1467,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
           var values = checkedValues(field);
           if (values.length) draft[field] = values;
         });
+        draft.savedAt = Date.now();
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
       } catch (e) { /* private mode or full quota: not worth interrupting anyone */ }
     }, 350);
@@ -1451,6 +1479,15 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
     } catch (e) { return; }
     if (!draft) return;
+
+    // Drafts expire. Without this, the next person on a shared computer, at a
+    // learning centre or an internet cafe, opens the page pre-filled with
+    // someone else's name, phone and Telegram handle, and can submit it.
+    if (!draft.savedAt || Date.now() - draft.savedAt > DRAFT_MAX_AGE_MS) {
+      clearDraft();
+      return;
+    }
+    restoredFromDraft = true;
 
     DRAFT_FIELDS.forEach(function (field) {
       var node = $('#' + field);
@@ -1488,6 +1525,24 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   }
 
   restoreDraft();
+
+  if (restoredFromDraft) {
+    var notice = $('#restoredNotice');
+    if (notice) notice.hidden = false;
+  }
+  var freshBtn = $('#startFresh');
+  if (freshBtn) {
+    freshBtn.addEventListener('click', function () {
+      clearDraft();
+      form.reset();
+      $$('.error', form).forEach(function (slot) { slot.textContent = ''; });
+      $$('[aria-invalid]', form).forEach(function (n) { n.removeAttribute('aria-invalid'); });
+      hideBanner();
+      updateCounter();
+      $('#restoredNotice').hidden = true;
+      showStep(1, true);
+    });
+  }
 
   /* ---------- Submit ---------- */
   function setBanner(title, detail, html) {
@@ -1539,7 +1594,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   // visible. Anything not listed is checked at submit time regardless.
   var STEP_FIELDS = {
     1: ['name', 'phone', 'telegram', 'email'],
-    2: ['course', 'level', 'format', 'timeline'],
+    2: ['course', 'level', 'timeline'],
     3: ['notes', 'consent']
   };
   var TOTAL_STEPS = 3;
@@ -1657,7 +1712,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
         first.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
       setBanner(
-        invalid.length === 1 ? 'One field needs your attention' : invalid.length + ' fields need your attention',
+        invalid.length === 1 ? 'One field needs your attention' : invalid.length + ' fields across the form need your attention',
         document.createTextNode(
           step && step !== currentStep
             ? 'We have taken you back to step ' + step + '. Check the highlighted fields.'
@@ -1680,7 +1735,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       email: valueOf('email'),
       course: valueOf('course'),
       level: valueOf('level'),
-      format: valueOf('format'),
       timeline: valueOf('timeline'),
       reading: checkedValues('reading'),
       listening: checkedValues('listening'),
@@ -1705,7 +1759,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     setLoading(true);
 
     var controller = new AbortController();
-    var timeout = setTimeout(function () { controller.abort(); }, 15000);
+    var timeout = setTimeout(function () { controller.abort(); }, 30000);
 
     fetch(CONFIG.endpoint, {
       method: 'POST',
@@ -1724,10 +1778,17 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       })
       .catch(function (error) {
         var message = error && error.name === 'AbortError'
-          ? 'The request timed out.'
+          ? 'That took too long, and it may still have gone through. Check with us on Telegram before sending again.'
           : (error && error.message) || 'We could not send your registration.';
         var frag = document.createDocumentFragment();
-        frag.appendChild(document.createTextNode(message + ' Your answers are still here, so you can press send again. '));
+        // "Press send again" is wrong advice for a rate-limit block: it will
+        // fail identically. Only offer the retry when retrying can work.
+        var retryable = !/too many submissions|cannot accept registrations/i.test(message);
+        frag.appendChild(document.createTextNode(
+          message + (retryable
+            ? ' Your answers are still here, so you can press send again. '
+            : ' Your answers are saved. ')
+        ));
         frag.appendChild(fallbackNode());
         setBanner('We could not send that', frag);
         return false;

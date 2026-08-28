@@ -151,13 +151,71 @@ not work**: each one gets its own `<hash>.challenge-register.pages.dev` hostname
 production URL is allowed. A preview build's form will fail with a console CORS error and
 nothing visible on the page. Add any custom domain to the list explicitly too.
 
+## 7. Optional: also collect registrations in a Google Sheet
+
+Telegram is good for being told about a registration; it is bad for looking at fifty of
+them at once. This step adds a second copy of every submission as a spreadsheet row.
+It is optional — skip it and everything above still works. Nothing in `index.html`
+changes either way.
+
+1. Create a Google Sheet. The tab can be empty; the header row is written on the first
+   registration. **The first tab is the one used**, so do not reorder the tabs later.
+2. In that sheet, open **Extensions → Apps Script**. Delete the placeholder `myFunction`
+   and paste the whole of `worker/sheet-webhook.gs`.
+3. Generate a shared secret and paste it into the `SHEET_TOKEN` line at the top of the
+   script:
+   ```bash
+   openssl rand -hex 24
+   ```
+4. **Deploy → New deployment**, gear icon → **Web app**, then:
+   - *Execute as*: **Me**
+   - *Who has access*: **Anyone**
+
+   "Anyone" is required — the Worker calls it without a Google account, so
+   "Anyone with a Google account" rejects it. The URL is unguessable and the token is
+   what actually protects the sheet. Google will ask you to authorise the script the
+   first time; the "unverified app" warning is expected for your own script.
+5. Copy the **/exec** URL it gives you (it ends in `/exec`, not `/dev`), and store both
+   values on the Worker:
+   ```bash
+   cd worker
+   wrangler secret put SHEET_WEBHOOK_URL     # paste the /exec URL
+   wrangler secret put SHEET_WEBHOOK_TOKEN   # paste the same string as SHEET_TOKEN
+   wrangler deploy
+   ```
+
+Submit the form once. The row should appear within a couple of seconds.
+
+If it does not, run `wrangler tail` and submit again:
+
+- **`Sheet webhook refused: Bad token`** — `SHEET_TOKEN` in the script and
+  `SHEET_WEBHOOK_TOKEN` on the Worker are not identical. Watch for a trailing space or
+  newline when pasting.
+- **`Sheet webhook returned 401` or `403`** — the deployment is not set to *Anyone*.
+- **Nothing at all in the log, and no row** — the secrets are not set. Both are required;
+  with either missing the Worker skips the sheet silently by design.
+- **Edited the script and nothing changed** — Apps Script serves the last *deployed*
+  version, not the saved one. Use **Deploy → Manage deployments → edit → Version: New
+  version**. Creating a brand-new deployment instead gives you a *different* URL, which
+  you would then have to put back into `SHEET_WEBHOOK_URL`.
+
+Telegram remains the record of truth. A sheet write that fails is logged and dropped —
+the student still gets a success, because the registration did arrive in Telegram. So a
+missing row is possible; a missing Telegram message is not.
+
+To add a column later, change it in three places or the rows go out of alignment:
+`HEADERS` in the script, `buildRow()` in `worker/worker.js`, and the existing header row
+in the sheet itself.
+
 ---
 
 ## Notes
 
-- **Telegram is your only record.** Nothing is stored in a database. Pin the channel or
-  use Telegram search to find past registrations. If you later want a spreadsheet, the
-  Worker can write each row to KV or a Google Sheet without any change to `index.html`.
+- **Telegram is your record of truth.** Nothing is stored in a database. Pin the channel
+  or use Telegram search to find past registrations. Section 7 adds a Google Sheet copy,
+  which is what you want for a list you can sort, filter or export — but it is a copy,
+  written after the fact, and only from the point you set it up. Registrations sent
+  before that exist only in Telegram and cannot be backfilled automatically.
 - **Rate limit** is 5 submissions per IP per clock hour, in `worker.js` as
   `RATE_LIMIT_MAX`. A shared office, school or university network shares one IP, so a class
   registering together will hit it; raise it before any session like that.
