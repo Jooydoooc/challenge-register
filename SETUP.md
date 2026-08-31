@@ -87,13 +87,13 @@ difficulty checklists, and your contact details.
 One exception: the **"How did you hear about us?"** options are written directly in the
 HTML, not in CONFIG. Search for `id="source"` to edit them.
 
-If you change `courses`, `levels`, the `#source` options, or either difficulty list, make
-the same change to the matching arrays at the top of `worker/worker.js`. They
-fail differently, which matters when debugging:
+If you change `courses`, `levels`, `currentBands`, `targetBands`, the `#source` options,
+or either difficulty list, make the same change to the matching arrays at the top of
+`worker/worker.js`. They fail differently, which matters when debugging:
 
 | Field | If the Worker does not recognise the value |
 |---|---|
-| course, level | Rejected with a 400 — the student sees an error |
+| course, level, the four band fields | Rejected with a 400 — the student sees an error |
 | source, reading, listening | Silently dropped — the field just vanishes from the message |
 
 So a renamed difficulty produces no error anywhere; it simply stops appearing. If a field
@@ -123,7 +123,7 @@ If it does not:
   reason Telegram gave.
 - **"Registration is not connected yet"** — `CONFIG.endpoint` is still empty.
 - **Everything looks fine but nothing arrives, repeatedly** — you may have hit the rate
-  limit (5 per IP per hour). Wait, or raise `RATE_LIMIT_MAX`.
+  limit (5 per IP per 30 minutes). Wait, or raise `RATE_LIMIT_MAX`.
 
 Watch the Worker live while testing:
 
@@ -216,9 +216,23 @@ in the last column. The student is told "We have your details but could not conf
 so nobody is told they succeeded when they did not, and you can still find them. Filter
 that column before a busy intake.
 
-To add a column later, change it in three places or the rows go out of alignment:
-`HEADERS` in the script, `buildRow()` in `worker/worker.js`, and the existing header row
-in the sheet itself.
+### Adding a column later
+
+Add it in two places, **at the end of both lists**: `HEADERS` in the script and
+`buildRow()` in `worker/worker.js`. Appending rather than inserting is what keeps the rows
+already in the sheet under the headings they were written for. The sheet's own header row
+is filled in automatically on the next registration — `fillMissingHeaders()` labels blank
+header cells only, so a heading you renamed by hand is left alone.
+
+**Deploy the Apps Script first, then the Worker.** The two cannot go live in the same
+instant, and the script checks the row width. It accepts the previous width as well as the
+current one (`LEGACY_WIDTHS`) so that rows arriving in between are padded and kept — but
+that tolerance only exists once the new script is deployed. In the other order every row
+in the gap is refused, and because the sheet write is fire-and-forget you would only see
+it in `wrangler tail`. That matters: the "we have your details" message on the
+Telegram-failure path above is only true while the sheet is accepting rows.
+
+Once the Worker is live, `LEGACY_WIDTHS` can be set back to `[]`.
 
 ---
 
@@ -229,9 +243,12 @@ in the sheet itself.
   which is what you want for a list you can sort, filter or export — but it is a copy,
   written after the fact, and only from the point you set it up. Registrations sent
   before that exist only in Telegram and cannot be backfilled automatically.
-- **Rate limit** is 5 submissions per IP per clock hour, in `worker.js` as
-  `RATE_LIMIT_MAX`. A shared office, school or university network shares one IP, so a class
-  registering together will hit it; raise it before any session like that.
+- **Rate limit** is 5 submissions per IP per fixed 30-minute window, in `worker.js` as
+  `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_SECONDS`. A shared office, school or university
+  network shares one IP, so a class registering together will hit it; raise
+  `RATE_LIMIT_MAX` before any session like that. Because the window is fixed rather than
+  rolling, a blocked student is let back in at the next boundary — at most 30 minutes, and
+  often sooner — rather than 30 minutes after their last attempt.
   It is deliberately approximate. KV has no atomic increment, so the count is read and
   written a few milliseconds apart and a simultaneous burst can exceed the limit. It stops
   repeat submissions and casual abuse, not a determined attacker. If you ever need a real

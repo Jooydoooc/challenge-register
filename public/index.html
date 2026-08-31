@@ -523,6 +523,9 @@ input[type="text"], input[type="tel"], input[type="email"], select, textarea {
   transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
 textarea { min-height: 7rem; resize: vertical; line-height: 1.55; }
+/* A required 400-character answer read back through five lines is hard to
+   check over; this one gets room for most of it before scrolling. */
+#why { min-height: 9.5rem; }
 select {
   appearance: none;
   padding-right: 2.5rem;
@@ -927,9 +930,57 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
           <section class="step" id="step-3" tabindex="-1" aria-labelledby="step-3-title" hidden>
             <div class="step-head">
               <h3 id="step-3-title">Your English</h3>
-              <p>Tell us what you find hard, so we can place you well. Everything here is optional.</p>
+              <p>Where you are now, where you want to get to, and what you find hard.</p>
             </div>
             <div class="field-grid">
+
+            <div class="field">
+              <label for="readingNow">Current Reading band <span class="req" aria-hidden="true">*</span></label>
+              <select id="readingNow" name="readingNow" required aria-describedby="readingNow-hint readingNow-error">
+                <option value="">Choose one</option>
+              </select>
+              <span class="hint" id="readingNow-hint">Your last mock or real test. Pick “Not sure” if you have never taken one.</span>
+              <span class="error" aria-live="polite" id="readingNow-error"></span>
+            </div>
+
+            <div class="field">
+              <label for="listeningNow">Current Listening band <span class="req" aria-hidden="true">*</span></label>
+              <select id="listeningNow" name="listeningNow" required aria-describedby="listeningNow-hint listeningNow-error">
+                <option value="">Choose one</option>
+              </select>
+              <span class="hint" id="listeningNow-hint">“Not sure” is fine here too.</span>
+              <span class="error" aria-live="polite" id="listeningNow-error"></span>
+            </div>
+
+            <div class="field">
+              <label for="readingTarget">Target Reading band <span class="req" aria-hidden="true">*</span></label>
+              <select id="readingTarget" name="readingTarget" required aria-describedby="readingTarget-error">
+                <option value="">Choose one</option>
+              </select>
+              <span class="error" aria-live="polite" id="readingTarget-error"></span>
+            </div>
+
+            <div class="field">
+              <label for="listeningTarget">Target Listening band <span class="req" aria-hidden="true">*</span></label>
+              <select id="listeningTarget" name="listeningTarget" required aria-describedby="listeningTarget-error">
+                <option value="">Choose one</option>
+              </select>
+              <span class="error" aria-live="polite" id="listeningTarget-error"></span>
+            </div>
+
+            <div class="field span-2">
+              <label for="why">Why are you joining <span data-cfg="course.short">DISCIPLINE</span>? <span class="req" aria-hidden="true">*</span></label>
+              <!-- maxlength is deliberately above the 400 the rule enforces. At
+                   exactly 400 the browser truncates a longer paste silently:
+                   the student's answer is cut with no counter change, no error
+                   and nothing to notice. Leaving headroom lets the counter turn
+                   red and the rule explain it, while still bounding the paste. -->
+              <textarea id="why" name="why" maxlength="1000" required aria-describedby="why-hint why-counter why-error"
+                        placeholder="What you want out of these 35 days, and why now."></textarea>
+              <span class="hint" id="why-hint">A sentence or two is enough. We read every one of these.</span>
+              <span class="counter" id="why-counter" aria-live="off">0 / 400</span>
+              <span class="error" aria-live="polite" id="why-error"></span>
+            </div>
 
             <div class="field span-2">
               <fieldset>
@@ -950,7 +1001,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 
             <div class="field span-2">
               <label for="notes">Anything we should know? <span class="hint" style="font-weight:400">(optional)</span></label>
-              <textarea id="notes" name="notes" maxlength="500" aria-describedby="notes-counter notes-error"
+              <!-- Above the 500 the rule enforces, for the reason given on #why. -->
+              <textarea id="notes" name="notes" maxlength="1000" aria-describedby="notes-counter notes-error"
                         placeholder="Test date, weak skill, scheduling constraints."></textarea>
               <span class="counter" id="notes-counter" aria-live="off">0 / 500</span>
               <span class="error" aria-live="polite" id="notes-error"></span>
@@ -1042,6 +1094,12 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       { name: 'DISCIPLINE',      blurb: '35 days, Reading and Listening' }
     ],
     levels: ['Beginner', 'Elementary', 'Pre-IELTS', 'IELTS Introduction', 'IELTS Graduation'],
+    // Band scores. "Not sure" is offered for the current bands only: a student
+    // who has never sat a mock still has to be able to answer, but everyone
+    // can name a target.
+    currentBands: ['Not sure', 'Below 4.0', '4.0', '4.5', '5.0', '5.5', '6.0',
+      '6.5', '7.0', '7.5', '8.0', '8.5', '9.0'],
+    targetBands: ['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0', '8.5', '9.0'],
     readingDifficulties: [
       'Matching Headings',
       'True/False/Not Given',
@@ -1202,6 +1260,36 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     });
   }
 
+  /**
+   * Fill a band <select> from a list of strings.
+   *
+   * These four selects are required and sit on the last step, so an empty one
+   * is not a cosmetic problem: the student has filled in everything else and
+   * then cannot submit at all, against a dropdown with nothing to choose. A
+   * renamed or deleted CONFIG array therefore falls back to a built-in list
+   * rather than rendering nothing.
+   */
+  // Two lists, not one: the Worker validates current and target bands against
+  // different closed sets, so falling back to a shared list would let a student
+  // pick "Not sure" as a *target* and have the Worker reject the whole
+  // registration. That trades a blocked form for a lost one.
+  var FALLBACK_CURRENT_BANDS = ['Not sure', '4.0', '4.5', '5.0', '5.5', '6.0',
+    '6.5', '7.0', '7.5', '8.0', '8.5', '9.0'];
+  var FALLBACK_TARGET_BANDS = ['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0',
+    '8.5', '9.0'];
+
+  function renderBands(id, items, fallback) {
+    var select = $('#' + id);
+    if (!select) return;
+    var list = (items && items.length) ? items : fallback;
+    if (list === fallback && window.console) {
+      console.warn('No band list in CONFIG for #' + id + '; using the built-in list.');
+    }
+    list.forEach(function (band) {
+      select.appendChild(new Option(band, band));
+    });
+  }
+
   function renderContacts() {
     var tg = CONFIG.contact.telegram ? String(CONFIG.contact.telegram).replace(/^@/, '') : '';
     var links = $('#footerLinks');
@@ -1245,6 +1333,10 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     renderChecks('readingChecks', 'reading', CONFIG.readingDifficulties);
     renderChecks('listeningChecks', 'listening', CONFIG.listeningDifficulties);
     renderLevels();
+    renderBands('readingNow', CONFIG.currentBands, FALLBACK_CURRENT_BANDS);
+    renderBands('listeningNow', CONFIG.currentBands, FALLBACK_CURRENT_BANDS);
+    renderBands('readingTarget', CONFIG.targetBands, FALLBACK_TARGET_BANDS);
+    renderBands('listeningTarget', CONFIG.targetBands, FALLBACK_TARGET_BANDS);
     renderContacts();
   } catch (e) {
     if (window.console) console.error('CONFIG could not be rendered:', e);
@@ -1294,6 +1386,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   var doneCard = $('#doneCard');
   var notes = $('#notes');
   var counter = $('#notes-counter');
+  var why = $('#why');
+  var whyCounter = $('#why-counter');
   var DRAFT_KEY = 'courseRegDraft.v1';
   var DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
   var restoredFromDraft = false;
@@ -1335,9 +1429,38 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       if (n < 1 || n > 1095) return 'Please enter between 1 and 1095 days.';
       return '';
     },
+    readingNow: function (v) { return v ? '' : 'Please choose your current Reading band.'; },
+    listeningNow: function (v) { return v ? '' : 'Please choose your current Listening band.'; },
+    readingTarget: function (v) {
+      if (!v) return 'Please choose your target Reading band.';
+      return targetBelowCurrent(v, valueOf('readingNow'));
+    },
+    listeningTarget: function (v) {
+      if (!v) return 'Please choose your target Listening band.';
+      return targetBelowCurrent(v, valueOf('listeningNow'));
+    },
+    why: function (v) {
+      if (!v) return 'Please tell us why you are joining.';
+      if (v.length < 10) return 'A sentence or two, please.';
+      if (v.length > 400) return 'Please keep this under 400 characters.';
+      return '';
+    },
     notes: function (v) { return v.length > 500 ? 'Please keep this under 500 characters.' : ''; },
     consent: function (v) { return v ? '' : 'Please tick this to continue.'; }
   };
+
+  /**
+   * Catch a transposed pair. Four near-identical dropdowns stacked two by two
+   * are easy to fill in the wrong order, and "current 8.5, target 5.0" would
+   * otherwise be acted on as a real answer when placing the student.
+   * Non-numeric currents ("Not sure", "Below 4.0") are left alone.
+   */
+  function targetBelowCurrent(target, current) {
+    var now = parseFloat(current);
+    var goal = parseFloat(target);
+    if (isNaN(now) || isNaN(goal) || goal >= now) return '';
+    return 'Your target is below your current band. Did you swap the two?';
+  }
 
   /** Fields rendered as radio groups rather than single inputs. */
   var RADIO_FIELDS = ['course'];
@@ -1400,7 +1523,13 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     }
     var node = $('#' + field);
     if (!node) return;
-    node.addEventListener('blur', function () { validateField(field); });
+    // Selects validate on change only. Tabbing through the four band dropdowns
+    // to hear their labels before choosing would otherwise turn the whole step
+    // red on the way past; the change handler below still catches a real miss,
+    // as does submit.
+    if (node.tagName !== 'SELECT') {
+      node.addEventListener('blur', function () { validateField(field); });
+    }
     node.addEventListener('input', function () {
       // Clear a shown error as soon as it stops being true; never add one mid-typing.
       var slot = $('#' + field + '-error');
@@ -1414,6 +1543,28 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 
   // #source has no validation rule, so the loop above skips it entirely.
   $('#source').addEventListener('change', saveDraft);
+
+  // Changing a current band can make an already-chosen target wrong, and the
+  // target's own change handler will not fire again. Re-check it here, but only
+  // once the target has been answered, so nobody is told off for a field they
+  // have not reached yet.
+  [['readingNow', 'readingTarget'], ['listeningNow', 'listeningTarget']].forEach(function (pair) {
+    var now = $('#' + pair[0]);
+    if (!now) return;
+    now.addEventListener('change', function () {
+      if (valueOf(pair[1])) validateField(pair[1]);
+    });
+  });
+
+  // Trim on blur so the counter and the length rule cannot disagree: valueOf()
+  // trims before validating, so " hi" counted 12 characters and was still
+  // rejected as too short.
+  $$('#why, #notes').forEach(function (node) {
+    node.addEventListener('blur', function () {
+      var trimmed = this.value.replace(/^\s+|\s+$/g, '');
+      if (trimmed !== this.value) { this.value = trimmed; updateCounter(); }
+    });
+  });
 
   // Telegram username tidy-up: accept a pasted link or a bare name.
   $('#telegram').addEventListener('blur', function () {
@@ -1449,15 +1600,31 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     validateField('phone');
   });
 
+  /** Returns true when the field is over its limit. */
+  function countOne(field, counterNode, max) {
+    if (!field || !counterNode) return false;
+    var length = field.value.length;
+    counterNode.textContent = length + ' / ' + max;
+    counterNode.setAttribute('data-over', String(length > max));
+    return length > max;
+  }
+
   function updateCounter() {
-    var length = notes.value.length;
-    counter.textContent = length + ' / 500';
-    counter.setAttribute('data-over', String(length > 500));
+    var overNotes = countOne(notes, counter, 500);
+    var overWhy = countOne(why, whyCounter, 400);
+    // The counters are aria-live="off" — announcing a number on every keystroke
+    // is unusable — so going over has to reach the error slot, which is polite.
+    // Without this a student pasting a long answer sees red they may not notice
+    // and hears nothing at all until they try to submit.
+    if (overNotes) validateField('notes');
+    if (overWhy) validateField('why');
   }
   notes.addEventListener('input', updateCounter);
+  if (why) why.addEventListener('input', updateCounter);
 
   /* ---------- Draft ---------- */
-  var DRAFT_FIELDS = ['name', 'phone', 'telegram', 'email', 'level', 'timeline', 'source', 'notes'];
+  var DRAFT_FIELDS = ['name', 'phone', 'telegram', 'email', 'level', 'timeline', 'source',
+    'readingNow', 'listeningNow', 'readingTarget', 'listeningTarget', 'why', 'notes'];
   var saveTimer;
 
   function saveDraft() {
@@ -1617,7 +1784,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   var STEP_FIELDS = {
     1: ['name', 'phone', 'telegram', 'email'],
     2: ['course', 'level', 'timeline'],
-    3: ['notes', 'consent']
+    3: ['readingNow', 'listeningNow', 'readingTarget', 'listeningTarget', 'why', 'notes', 'consent']
   };
   var TOTAL_STEPS = 3;
   var currentStep = 1;
@@ -1736,8 +1903,17 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
         first.focus({ preventScroll: true });
         first.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
+      // "across the form" is only true when they are not all on one step, which
+      // is the less common case: an untouched step 3 alone produces five.
+      var elsewhere = invalid.some(function (f) {
+        var s = stepOf(f);
+        return s && s !== currentStep;
+      });
       setBanner(
-        invalid.length === 1 ? 'One field needs your attention' : invalid.length + ' fields across the form need your attention',
+        invalid.length === 1
+          ? 'One field needs your attention'
+          : invalid.length + (elsewhere ? ' fields across the form need your attention'
+                                        : ' fields need your attention'),
         document.createTextNode(
           step && step !== currentStep
             ? 'We have taken you back to step ' + step + '. Check the highlighted fields.'
@@ -1761,6 +1937,11 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       course: valueOf('course'),
       level: valueOf('level'),
       timeline: valueOf('timeline'),
+      readingNow: valueOf('readingNow'),
+      listeningNow: valueOf('listeningNow'),
+      readingTarget: valueOf('readingTarget'),
+      listeningTarget: valueOf('listeningTarget'),
+      why: valueOf('why'),
       reading: checkedValues('reading'),
       listening: checkedValues('listening'),
       source: valueOf('source'),

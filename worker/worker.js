@@ -18,7 +18,10 @@
 
 const MAX_BODY_BYTES = 8 * 1024;
 const RATE_LIMIT_MAX = 5;
-const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
+// Half an hour, not one. A student who trips the limit gets back in sooner,
+// which matters because the window is fixed rather than rolling: the block
+// lifts at the boundary regardless of when they last tried.
+const RATE_LIMIT_WINDOW_SECONDS = 30 * 60;
 
 /** Fields we accept. Anything else in the payload is dropped. */
 const FIELDS = [
@@ -29,8 +32,16 @@ const FIELDS = [
   { key: 'course', label: 'Course', required: true, max: 40 },
   { key: 'level', label: 'Level', required: true, max: 40 },
   { key: 'timeline', label: 'Days to goal', required: false, max: 12 },
+  // The five below are required on the page, but optional here on purpose: a
+  // Worker deploy that landed before the page deploy would otherwise 400 every
+  // registration coming from the old page. Their *values* are still checked.
+  { key: 'readingNow', label: 'Current Reading band', required: false, max: 12 },
+  { key: 'listeningNow', label: 'Current Listening band', required: false, max: 12 },
+  { key: 'readingTarget', label: 'Target Reading band', required: false, max: 12 },
+  { key: 'listeningTarget', label: 'Target Listening band', required: false, max: 12 },
+  { key: 'why', label: 'Why joining', required: false, max: 400, multiline: true },
   { key: 'source', label: 'Heard via', required: false, max: 40 },
-  { key: 'notes', label: 'Notes', required: false, max: 500 },
+  { key: 'notes', label: 'Notes', required: false, max: 500, multiline: true },
 ];
 
 /**
@@ -43,6 +54,11 @@ const FIELDS = [
 // registration failing in between. Drop 'Challenge' once the page is live.
 const COURSES = ['Marathon', 'Offline classes', 'DISCIPLINE', 'Challenge'];
 const LEVELS = ['Beginner', 'Elementary', 'Pre-IELTS', 'IELTS Introduction', 'IELTS Graduation'];
+const CURRENT_BANDS = [
+  'Not sure', 'Below 4.0', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0',
+  '7.5', '8.0', '8.5', '9.0',
+];
+const TARGET_BANDS = ['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0', '8.5', '9.0'];
 const SOURCES = [
   'Instagram', 'Telegram channel', 'A friend or former student',
   'Google search', 'YouTube', 'Other',
@@ -266,7 +282,7 @@ function validate(payload) {
     // Sanitise before the length check, so stripped characters cannot be used
     // to smuggle a value past `max`.
     const value = typeof payload[field.key] === 'string'
-      ? sanitise(payload[field.key], field.key === 'notes')
+      ? sanitise(payload[field.key], field.multiline === true)
       : '';
     if (!value) {
       if (field.required) errors.push(`${field.label} is required`);
@@ -299,6 +315,21 @@ function validate(payload) {
     // Same bound as the page, so the two cannot disagree.
     errors.push('Days to goal must be a number between 1 and 1095');
   }
+  // Bands come from fixed <select>s, so an unrecognised one is a tampered or
+  // stale payload. Reject rather than drop: unlike "Heard via", these decide
+  // which group the student is put in, and a silently missing band is worse
+  // than an error the student can see.
+  for (const [key, label, allowed] of [
+    ['readingNow', 'Current Reading band', CURRENT_BANDS],
+    ['listeningNow', 'Current Listening band', CURRENT_BANDS],
+    ['readingTarget', 'Target Reading band', TARGET_BANDS],
+    ['listeningTarget', 'Target Listening band', TARGET_BANDS],
+  ]) {
+    if (data[key] && !allowed.includes(data[key])) {
+      errors.push(`${label} is not valid`);
+    }
+  }
+
   if (data.source && !SOURCES.includes(data.source)) {
     delete data.source; // optional and cosmetic: drop it rather than reject
   }
@@ -451,6 +482,20 @@ function buildMessage(data, request, suspicious) {
 
   if (data.timeline) lines.push(`<b>Days to goal:</b> ${esc(data.timeline)}`);
 
+  // Now → target, on one line per skill, so the gap to close is readable at a
+  // glance. Either half can be missing if the page and the Worker are briefly
+  // out of step, so each side falls back to a dash rather than dropping the row.
+  if (data.readingNow || data.readingTarget) {
+    lines.push(`<b>Reading:</b> ${esc(data.readingNow || '—')} → ${esc(data.readingTarget || '—')}`);
+  }
+  if (data.listeningNow || data.listeningTarget) {
+    lines.push(`<b>Listening:</b> ${esc(data.listeningNow || '—')} → ${esc(data.listeningTarget || '—')}`);
+  }
+
+  if (data.why) {
+    lines.push('', `<b>Why they are joining:</b>`, clip(esc(data.why), 1400));
+  }
+
   if (data.reading.length) {
     lines.push('', `<b>Reading — struggles with:</b>`, data.reading.map((r) => `• ${esc(r)}`).join('\n'));
   }
@@ -568,6 +613,14 @@ function buildRow(data, request, suspicious, undelivered) {
     cell(request.cf && request.cf.country),
     // One column, two very different meanings, both needing the owner's eye.
     undelivered ? 'NOT SENT TO TELEGRAM' : (suspicious ? 'BOT TRAP' : ''),
+    // Appended after Flag rather than slotted in beside Level, so every row
+    // already in the sheet stays under the right heading. Add these five
+    // columns to the existing sheet by hand, in this order.
+    cell(data.readingNow),
+    cell(data.readingTarget),
+    cell(data.listeningNow),
+    cell(data.listeningTarget),
+    cell(data.why),
   ];
 }
 
