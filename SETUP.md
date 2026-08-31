@@ -123,7 +123,7 @@ If it does not:
   reason Telegram gave.
 - **"Registration is not connected yet"** — `CONFIG.endpoint` is still empty.
 - **Everything looks fine but nothing arrives, repeatedly** — you may have hit the rate
-  limit (5 per IP per 30 minutes). Wait, or raise `RATE_LIMIT_MAX`.
+  limit (50 per IP per 30 minutes). Wait, or raise `RATE_LIMIT_MAX`.
 
 Watch the Worker live while testing:
 
@@ -243,10 +243,11 @@ Once the Worker is live, `LEGACY_WIDTHS` can be set back to `[]`.
   which is what you want for a list you can sort, filter or export — but it is a copy,
   written after the fact, and only from the point you set it up. Registrations sent
   before that exist only in Telegram and cannot be backfilled automatically.
-- **Rate limit** is 5 submissions per IP per fixed 30-minute window, in `worker.js` as
+- **Rate limit** is 50 submissions per IP per fixed 30-minute window, in `worker.js` as
   `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_SECONDS`. A shared office, school or university
-  network shares one IP, so a class registering together will hit it; raise
-  `RATE_LIMIT_MAX` before any session like that. Because the window is fixed rather than
+  network shares one IP, and so does a mobile carrier behind CGNAT, so the count is per
+  network far more often than per student — that is why it is 50 and not 5. Raise it
+  further before a session bigger than that. Because the window is fixed rather than
   rolling, a blocked student is let back in at the next boundary — at most 30 minutes, and
   often sooner — rather than 30 minutes after their last attempt.
   It is deliberately approximate. KV has no atomic increment, so the count is read and

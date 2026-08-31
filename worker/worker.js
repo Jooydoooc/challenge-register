@@ -17,7 +17,11 @@
  */
 
 const MAX_BODY_BYTES = 8 * 1024;
-const RATE_LIMIT_MAX = 5;
+// Fifty per window, not five. The origin check is what actually keeps scripts
+// out of the channel; this only has to stop a runaway loop. Five blocks real
+// students whenever a class registers together from one wifi or one carrier's
+// NAT, and a blocked student reads it as the form being broken.
+const RATE_LIMIT_MAX = 50;
 // Half an hour, not one. A student who trips the limit gets back in sooner,
 // which matters because the window is fixed rather than rolling: the block
 // lifts at the boundary regardless of when they last tried.
@@ -366,15 +370,15 @@ function pickKnown(value, allowed) {
  * A determined attacker is not stopped by this — see the Turnstile note in
  * SETUP.md — but ordinary repeat submissions are.
  *
- * A fixed window in the key, rather than a rolling TTL, so five submissions
- * spread over three hours do not keep extending a one-hour block.
+ * A fixed window in the key, rather than a rolling TTL, so submissions spread
+ * over several hours do not keep extending a block.
  *
  * @returns {{blocked: boolean, reason?: 'limit'|'unavailable'}}
  */
 /**
  * An IPv6 client typically controls an entire /64, which is 18 quintillion
- * addresses. Counting the full address would let anyone on IPv6 take five
- * registrations per address and bypass the limit completely, so count the /64.
+ * addresses. Counting the full address would let anyone on IPv6 take a fresh
+ * allowance per address and bypass the limit completely, so count the /64.
  * IPv4 addresses are used whole.
  */
 function rateLimitScope(ip) {
