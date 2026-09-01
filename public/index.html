@@ -594,6 +594,15 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
      overflowing the card. */
   grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
 }
+/* Sits under a .checks grid inside the same fieldset, so it needs the column
+   layout .field would otherwise have given it. */
+.own-words {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+  min-width: 0;
+}
 .check {
   display: flex;
   align-items: center;
@@ -985,9 +994,20 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
             <div class="field span-2">
               <fieldset>
                 <legend class="legend" id="reading-legend">What do you find hard in Reading?</legend>
-                <p class="hint" style="margin:-0.25rem 0 0.75rem">Tick everything that applies. This is how we place you.</p>
+                <p class="hint" style="margin:-0.25rem 0 0.75rem">Tick everything that applies, or write it in your own words below. This is how we place you.</p>
                 <div class="checks" id="readingChecks" role="group"
                      aria-labelledby="reading-legend"><!-- rendered from CONFIG --></div>
+                <!-- For the student who cannot match their problem to a task
+                     type. maxlength sits above the 300 the rule enforces, for
+                     the reason given on #why. -->
+                <div class="own-words">
+                  <label for="readingOther">Or say it in your own words <span class="hint" style="font-weight:400">(optional)</span></label>
+                  <textarea id="readingOther" name="readingOther" rows="2" maxlength="600"
+                            aria-describedby="readingOther-counter readingOther-error"
+                            placeholder="I run out of time and guess the last passage."></textarea>
+                  <span class="counter" id="readingOther-counter" aria-live="off">0 / 300</span>
+                  <span class="error" aria-live="polite" id="readingOther-error"></span>
+                </div>
               </fieldset>
             </div>
 
@@ -996,6 +1016,14 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
                 <legend class="legend" id="listening-legend">What do you find hard in Listening?</legend>
                 <div class="checks" id="listeningChecks" role="group"
                      aria-labelledby="listening-legend"><!-- rendered from CONFIG --></div>
+                <div class="own-words">
+                  <label for="listeningOther">Or say it in your own words <span class="hint" style="font-weight:400">(optional)</span></label>
+                  <textarea id="listeningOther" name="listeningOther" rows="2" maxlength="600"
+                            aria-describedby="listeningOther-counter listeningOther-error"
+                            placeholder="I lose the speaker as soon as they correct themselves."></textarea>
+                  <span class="counter" id="listeningOther-counter" aria-live="off">0 / 300</span>
+                  <span class="error" aria-live="polite" id="listeningOther-error"></span>
+                </div>
               </fieldset>
             </div>
 
@@ -1079,7 +1107,6 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
         { label: 'Starts',   value: '5 September 2026' },
         { label: 'Length',   value: '35 days' },
         { label: 'Format',   value: 'Online' },
-        { label: 'Price',    value: '300 000 UZS' },
         { label: 'Places',   value: 'Unlimited' },
         { label: 'Register by', value: '4 September 2026, 23:59', highlight: true }
       ]
@@ -1388,6 +1415,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   var counter = $('#notes-counter');
   var why = $('#why');
   var whyCounter = $('#why-counter');
+  var readingOther = $('#readingOther');
+  var listeningOther = $('#listeningOther');
   var DRAFT_KEY = 'courseRegDraft.v1';
   var DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
   var restoredFromDraft = false;
@@ -1446,6 +1475,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       return '';
     },
     notes: function (v) { return v.length > 500 ? 'Please keep this under 500 characters.' : ''; },
+    // Optional, so an empty one is fine; only the length is a problem.
+    readingOther: function (v) { return v.length > 300 ? 'Please keep this under 300 characters.' : ''; },
+    listeningOther: function (v) { return v.length > 300 ? 'Please keep this under 300 characters.' : ''; },
     consent: function (v) { return v ? '' : 'Please tick this to continue.'; }
   };
 
@@ -1559,7 +1591,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   // Trim on blur so the counter and the length rule cannot disagree: valueOf()
   // trims before validating, so " hi" counted 12 characters and was still
   // rejected as too short.
-  $$('#why, #notes').forEach(function (node) {
+  $$('#why, #notes, #readingOther, #listeningOther').forEach(function (node) {
     node.addEventListener('blur', function () {
       var trimmed = this.value.replace(/^\s+|\s+$/g, '');
       if (trimmed !== this.value) { this.value = trimmed; updateCounter(); }
@@ -1612,6 +1644,10 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   function updateCounter() {
     var overNotes = countOne(notes, counter, 500);
     var overWhy = countOne(why, whyCounter, 400);
+    var overReadingOther = countOne(readingOther, $('#readingOther-counter'), 300);
+    var overListeningOther = countOne(listeningOther, $('#listeningOther-counter'), 300);
+    if (overReadingOther) validateField('readingOther');
+    if (overListeningOther) validateField('listeningOther');
     // The counters are aria-live="off" — announcing a number on every keystroke
     // is unusable — so going over has to reach the error slot, which is polite.
     // Without this a student pasting a long answer sees red they may not notice
@@ -1621,10 +1657,13 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   }
   notes.addEventListener('input', updateCounter);
   if (why) why.addEventListener('input', updateCounter);
+  if (readingOther) readingOther.addEventListener('input', updateCounter);
+  if (listeningOther) listeningOther.addEventListener('input', updateCounter);
 
   /* ---------- Draft ---------- */
   var DRAFT_FIELDS = ['name', 'phone', 'telegram', 'email', 'level', 'timeline', 'source',
-    'readingNow', 'listeningNow', 'readingTarget', 'listeningTarget', 'why', 'notes'];
+    'readingNow', 'listeningNow', 'readingTarget', 'listeningTarget', 'why', 'notes',
+    'readingOther', 'listeningOther'];
   var saveTimer;
 
   function saveDraft() {
@@ -1784,7 +1823,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   var STEP_FIELDS = {
     1: ['name', 'phone', 'telegram', 'email'],
     2: ['course', 'level', 'timeline'],
-    3: ['readingNow', 'listeningNow', 'readingTarget', 'listeningTarget', 'why', 'notes', 'consent']
+    3: ['readingNow', 'listeningNow', 'readingTarget', 'listeningTarget', 'why',
+        'readingOther', 'listeningOther', 'notes', 'consent']
   };
   var TOTAL_STEPS = 3;
   var currentStep = 1;
@@ -1944,6 +1984,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
       why: valueOf('why'),
       reading: checkedValues('reading'),
       listening: checkedValues('listening'),
+      readingOther: valueOf('readingOther'),
+      listeningOther: valueOf('listeningOther'),
       source: valueOf('source'),
       notes: valueOf('notes'),
       consent: true,

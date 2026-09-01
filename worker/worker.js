@@ -44,6 +44,11 @@ const FIELDS = [
   { key: 'readingTarget', label: 'Target Reading band', required: false, max: 12 },
   { key: 'listeningTarget', label: 'Target Listening band', required: false, max: 12 },
   { key: 'why', label: 'Why joining', required: false, max: 400, multiline: true },
+  // The checklists cover the task types, but a student who cannot name their
+  // problem in those terms has nowhere to put it. Free text, optional, and
+  // never validated against a list: the whole point is that it is unlisted.
+  { key: 'readingOther', label: 'Reading in their words', required: false, max: 300, multiline: true },
+  { key: 'listeningOther', label: 'Listening in their words', required: false, max: 300, multiline: true },
   { key: 'source', label: 'Heard via', required: false, max: 40 },
   { key: 'notes', label: 'Notes', required: false, max: 500, multiline: true },
 ];
@@ -500,11 +505,18 @@ function buildMessage(data, request, suspicious) {
     lines.push('', `<b>Why they are joining:</b>`, clip(esc(data.why), 1400));
   }
 
-  if (data.reading.length) {
-    lines.push('', `<b>Reading — struggles with:</b>`, data.reading.map((r) => `• ${esc(r)}`).join('\n'));
+  // Ticked boxes and the student's own words go under one heading, with the
+  // free text last and italic so it reads as theirs rather than as an option
+  // we offered. Either half alone is enough to print the block.
+  if (data.reading.length || data.readingOther) {
+    const items = data.reading.map((r) => `• ${esc(r)}`);
+    if (data.readingOther) items.push(`• <i>${esc(data.readingOther)}</i>`);
+    lines.push('', `<b>Reading — struggles with:</b>`, items.join('\n'));
   }
-  if (data.listening.length) {
-    lines.push('', `<b>Listening — struggles with:</b>`, data.listening.map((l) => `• ${esc(l)}`).join('\n'));
+  if (data.listening.length || data.listeningOther) {
+    const items = data.listening.map((l) => `• ${esc(l)}`);
+    if (data.listeningOther) items.push(`• <i>${esc(data.listeningOther)}</i>`);
+    lines.push('', `<b>Listening — struggles with:</b>`, items.join('\n'));
   }
 
   if (data.source) lines.push('', `<b>Heard via:</b> ${esc(data.source)}`);
@@ -625,6 +637,11 @@ function buildRow(data, request, suspicious, undelivered) {
     cell(data.listeningNow),
     cell(data.listeningTarget),
     cell(data.why),
+    // Appended for the same reason as the five above: existing rows keep
+    // their headings. Kept in their own columns rather than merged into the
+    // difficulty cells, so those stay filterable against the fixed lists.
+    cell(data.readingOther),
+    cell(data.listeningOther),
   ];
 }
 

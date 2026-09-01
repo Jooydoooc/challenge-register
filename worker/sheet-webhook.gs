@@ -59,6 +59,8 @@ var HEADERS = [
   'Listening now',
   'Listening target',
   'Why joining',
+  'Reading — own words',
+  'Listening — own words',
 ];
 
 function doPost(e) {
@@ -101,7 +103,9 @@ function doPost(e) {
     //
     // Deploy this script FIRST, then the Worker. Once the Worker is live,
     // trimming this list back to [] is safe.
-    var LEGACY_WIDTHS = [14]; // before the four band columns and 'Why joining'
+    // 14: before the four band columns and 'Why joining'.
+    // 19: before the two free-text 'own words' columns.
+    var LEGACY_WIDTHS = [14, 19];
 
     if (body.row.length !== HEADERS.length && LEGACY_WIDTHS.indexOf(body.row.length) === -1) {
       return reply({
